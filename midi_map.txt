@@ -1,0 +1,3 @@
+# cue player MIDI map -- one binding per line:  type chan num action
+note 1 73 next
+note 1 72 stop

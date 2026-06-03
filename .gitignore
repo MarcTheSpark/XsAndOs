@@ -1,0 +1,3 @@
+# MIDI cue source files (binary, managed outside git)
+*.mid
+*.midi
