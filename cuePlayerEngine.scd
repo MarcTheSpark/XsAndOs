@@ -363,9 +363,26 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 	};
 };
 
+// Virtual ALSA-seq ports (PipeWire's mirror, "Midi Through") balloon the source
+// list -- MIDIIn.connectAll then stalls trying to connect all of them. Connect only
+// real sources by skipping ports whose name/device matches any of these substrings.
+~midiSkipPorts = ["Through", "PipeWire", "RtMidi"];
+
+~midiConnectSources = {
+	var n = 0;
+	MIDIClient.sources.do({ |src, i|
+		var label = (src.device ? "") ++ " " ++ (src.name ? "");
+		if(~midiSkipPorts.any({ |w| label.containsi(w) }).not) {
+			MIDIIn.connect(i, src);
+			n = n + 1;
+		};
+	});
+	"connected % MIDI source(s) (skipped virtual: %)".format(n, ~midiSkipPorts).postln;
+};
+
 ~setupMIDI = {
 	MIDIClient.init(verbose:false);
-	MIDIIn.connectAll(verbose:false);
+	~midiConnectSources.value;                 // selective connect (connectAll hangs on virtual ports)
 	MIDIdef.noteOn(\cuePlayerNote, { |val, num, chan| (val > 0).if { ~onMidi.("note", chan, num, val) } });
 	MIDIdef.cc(    \cuePlayerCC,   { |val, num, chan| (val > 0).if { ~onMidi.("cc",   chan, num, val) } });
 	~midiMapPath !? { |p| ~loadMidiMap.(p) };
