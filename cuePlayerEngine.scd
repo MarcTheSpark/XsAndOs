@@ -363,17 +363,18 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 	};
 };
 
-// Virtual ALSA-seq ports (PipeWire's mirror, "Midi Through") balloon the source
-// list -- MIDIIn.connectAll then stalls trying to connect all of them. Connect only
-// real sources by skipping ports whose name/device matches any of these substrings.
-~midiSkipPorts = ["Through", "PipeWire", "RtMidi"];
+// Virtual ALSA-seq ports (PipeWire's mirror, "Midi Through"), the System
+// Timer/Announce ports, and SuperCollider's own ports balloon the source list --
+// MIDIIn.connectAll then stalls trying to connect all of them. Connect only real
+// sources whose name/device matches none of these substrings.
+~midiSkipPorts = ["Through", "PipeWire", "RtMidi", "SuperCollider", "Timer", "Announce"];
 
 ~midiConnectSources = {
 	var n = 0;
-	MIDIClient.sources.do({ |src, i|
+	MIDIClient.sources.do({ |src|
 		var label = (src.device ? "") ++ " " ++ (src.name ? "");
 		if(~midiSkipPorts.any({ |w| label.containsi(w) }).not) {
-			MIDIIn.connect(i, src);
+			MIDIIn.connect(0, src);    // arg 1 is SC's input-port index (always 0), NOT the source index
 			n = n + 1;
 		};
 	});
