@@ -71,13 +71,13 @@ SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 	var div = m.division;                 // ticks per quarter note
 	m.noteSustainEvents.collect({ |e|
 		// e == [track, absTime, \noteOn, channel, note, velo, dur, upVelo]
-		(startBeat: e[1] / div, durBeats: e[6] / div, midinote: e[4], vel: e[5])
+		(startBeat: e[1] / div, durBeats: e[6] / div, midinote: e[4], vel: e[5], track: e[0])
 	}).select({ |nt|
 		(nt[\startBeat] >= startBeat) and: { nt[\startBeat] < endBeat }
 	}).collect({ |nt|
 		var s   = nt[\startBeat] - startBeat;                                // re-zero
 		var end = (nt[\startBeat] + nt[\durBeats]).min(endBeat) - startBeat; // truncate
-		(startBeat: s, durBeats: (end - s).max(0), midinote: nt[\midinote], vel: nt[\vel])
+		(startBeat: s, durBeats: (end - s).max(0), midinote: nt[\midinote], vel: nt[\vel], track: nt[\track])
 	});
 };
 

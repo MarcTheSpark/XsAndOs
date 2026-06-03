@@ -52,7 +52,7 @@
 };
 
 ~openTempoEnvGui = {
-	var win, env, cueMenu, curveMenu, addBtn, remBtn, audBtn, saveBtn, info;
+	var win, env, cueMenu, curveMenu, curveNumBox, addBtn, remBtn, audBtn, saveBtn, info;
 	var minBpmBox, maxBpmBox;
 	var minBPM = 40, maxBPM = 240, cueLen = 16;
 	var currentName, model, names, updating = false;
@@ -76,7 +76,13 @@
 		syncCurveMenu = {
 			var seg = env.index.clip(0, (model[\curves].size - 1).max(0));
 			(model[\curves].size > 0).if {
-				~tgCurveTypes.indexOf(model[\curves][seg]) !? { |w| curveMenu.value_(w) };
+				var c = model[\curves][seg];
+				if(c.isNumber) {                                  // numeric curvature
+					curveNumBox.value_(c);
+				} {                                                // named shape
+					~tgCurveTypes.indexOf(c) !? { |w| curveMenu.value_(w) };
+					curveNumBox.value_(0);
+				};
 			};
 		};
 
@@ -140,10 +146,23 @@
 			var seg = env.index.clip(0, (model[\curves].size - 1).max(0));
 			(model[\curves].size > 0).if {
 				model[\curves][seg] = ~tgCurveTypes[m.value];
+				curveNumBox.value_(0);                            // a named shape clears the numeric box
 				~tempoEnvs[currentName] = ~tgModelToEnv.(model);
 				refresh.value;
 			};
 		});
+
+		// Numeric curvature for the selected segment (Env accepts a number as a curve;
+		// 0 == straight line, +/- bend the segment). Overrides the named shape.
+		curveNumBox = NumberBox().decimals_(2).clipLo_(-20).clipHi_(20).align_(\right)
+			.action_({ |b|
+				var seg = env.index.clip(0, (model[\curves].size - 1).max(0));
+				(model[\curves].size > 0).if {
+					model[\curves][seg] = b.value;
+					~tempoEnvs[currentName] = ~tgModelToEnv.(model);
+					refresh.value;
+				};
+			});
 
 		addBtn = Button().states_([["+ node"]]).action_({
 			var b = model[\beats], v = model[\bpms], c = model[\curves];
@@ -195,7 +214,8 @@
 					VLayout( StaticText().string_("BPM").align_(\center), maxBpmBox, nil, minBpmBox )
 				)
 			),
-			HLayout( addBtn, remBtn, StaticText().string_("curve:").maxWidth_(42), curveMenu, nil ),
+			HLayout( addBtn, remBtn, StaticText().string_("curve:").maxWidth_(42), curveMenu,
+				StaticText().string_("or #:").maxWidth_(34), curveNumBox.maxWidth_(70), nil ),
 			info
 		));
 		win.front;
