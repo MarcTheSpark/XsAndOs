@@ -39,6 +39,30 @@ SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 	Out.ar(out, sig ! 2);
 }).add;
 
+// Sibling voices: same arg contract as \sawCue (out/freq/amp/dur/atk/rel/gate), so
+// any track can be routed to any of them via tracks.txt. Distinct waveforms only --
+// these are stand-ins, not realistic instruments. Room remains for per-cue params (F3).
+SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1|
+	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	var sig = LPF.ar(Pulse.ar(freq, 0.35), freq * 6) * ampEnv * killEnv * amp;
+	Out.ar(out, sig ! 2);
+}).add;
+
+SynthDef(\sineCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1|
+	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	var sig = SinOsc.ar(freq) * ampEnv * killEnv * amp;
+	Out.ar(out, sig ! 2);
+}).add;
+
+SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1|
+	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	var sig = LFTri.ar(freq) * ampEnv * killEnv * amp;
+	Out.ar(out, sig ! 2);
+}).add;
+
 // ---------------------------------------------------------------------------
 // State + tempo-envelope storage. ~tempoEnvs maps a key -> Env of BPM over
 // (window) BEATS. Lookup tries the cue's name, then its file, then the default.
@@ -50,6 +74,10 @@ SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 ~tempoEnvs       = Dictionary.new;
 ~defaultTempoEnv = Env([120, 120], [1]);      // held at 120 BPM for the whole cue
 
+~trackRoles        = Dictionary.new;          // track index -> (role: \audio|\visual, target: synthdef symbol or \board)
+~defaultTrackTarget = \sawCue;                 // tracks not listed in tracks.txt sound on this voice
+~trackMapPath      = nil;                       // default track-map config path (SETUP sets this)
+
 ~midiMap           = Dictionary.new;          // "type chan num" -> action token (\next, \stop, or cue name)
 ~midiLearning      = nil;                      // action awaiting a control during MIDI-learn, else nil
 ~midiLearnSavePath = nil;                      // if set, save the map right after the next learn
@@ -58,6 +86,33 @@ SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 
 ~tempoEnvFor = { |cue|
 	~tempoEnvs[cue[\name]] ?? { ~tempoEnvs[cue[\file]] ?? { ~defaultTempoEnv } };
+};
+
+// Per-track routing. A track maps to (role: \audio, target: <synthdef>) or
+// (role: \visual, target: \board). Tracks not listed default to an audio voice.
+~trackRoleFor = { |track|
+	~trackRoles[track] ?? { (role: \audio, target: ~defaultTrackTarget) };
+};
+
+// Load tracks.txt:  one line  `track  role  target`  (e.g. `1 audio pulseCue`,
+// `4 visual board`). '#' comments and blank lines ignored. Global to the piece.
+~loadTrackMap = { |path|
+	var p = path.standardizePath;
+	if(File.exists(p)) {
+		~trackRoles = Dictionary.new;
+		File.readAllString(p).split($\n).do({ |line|
+			var t = line.stripWhiteSpace.replace("\t", " ");
+			if(t.notEmpty and: { t[0] != $# }) {
+				var tok = t.split($ ).reject(_.isEmpty);
+				if(tok.size >= 3) {
+					~trackRoles[tok[0].asInteger] = (role: tok[1].asSymbol, target: tok[2].asSymbol);
+				} {
+					"loadTrackMap: skipping malformed line: %".format(line).warn;
+				};
+			};
+		});
+		"loaded % track mapping(s) from %".format(~trackRoles.size, p).postln;
+	};
 };
 
 // ---------------------------------------------------------------------------
@@ -196,11 +251,14 @@ SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 		maxBeat = max(lastBeat, env.duration);
 		map = ~buildTimeMap.(env, maxBeat);
 
-		// Map each note's start/end beat through the integrated tempo curve.
+		// Map each note's start/end beat through the integrated tempo curve, and
+		// resolve its track's role/target (which synth to play, or \visual board).
 		events = cue[\notes].collect({ |nt|
-			var t0 = ~beatToTime.(map, nt[\startBeat]);
-			var t1 = ~beatToTime.(map, nt[\startBeat] + nt[\durBeats]);
-			(time: t0, dur: (t1 - t0).max(0.01), midinote: nt[\midinote], vel: nt[\vel])
+			var t0   = ~beatToTime.(map, nt[\startBeat]);
+			var t1   = ~beatToTime.(map, nt[\startBeat] + nt[\durBeats]);
+			var role = ~trackRoleFor.(nt[\track]);
+			(time: t0, dur: (t1 - t0).max(0.01), midinote: nt[\midinote], vel: nt[\vel],
+				role: role[\role], target: role[\target])
 		}).sort({ |a, b| a[\time] < b[\time] });
 
 		group = Group.new(s);
@@ -210,11 +268,14 @@ SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 			events.do({ |ev|
 				(ev[\time] - now).wait;   // SystemClock => waits in seconds
 				now = ev[\time];
-				Synth(\sawCue, [
-					\freq, ev[\midinote].midicps,
-					\amp,  ~masterAmp * (ev[\vel] / 127).squared,
-					\dur,  ev[\dur]
-				], group);
+				if(ev[\role] == \audio) {
+					Synth(ev[\target], [
+						\freq, ev[\midinote].midicps,
+						\amp,  ~masterAmp * (ev[\vel] / 127).squared,
+						\dur,  ev[\dur]
+					], group);
+				};
+				// (Phase 3 / F2: ev[\role] == \visual -> ~boardEvent.(...) wrapped in .defer)
 			});
 			// Reached only on NATURAL completion -- a manual stop/interrupt halts
 			// the routine first. Mark as stopped (so ~stop steps back next time) and

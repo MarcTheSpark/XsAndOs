@@ -37,6 +37,9 @@ s.waitForBoot({
 	~tempoEnvs["1"] = Env([60, 100], [10], \exp);
 	~tempoEnvs["2"] = Env([100, 160], [10], \exp);
 
+	~trackMapPath = "tracks.txt".resolveRelative;     // track -> synth/role map (global to the piece)
+	~loadTrackMap.(~trackMapPath);                    // load before the cue sheet so routing is ready
+
 	~loadCueSheet.("Cues/cues.txt".resolveRelative);
 
 	~tempoEnvPath = "tempos.txt".resolveRelative;     // where drawn tempo curves persist
