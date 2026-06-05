@@ -1,9 +1,11 @@
 # Cue sheet for midi_cue_player.scd
 # One cue per line:   filename  start_beat  end_beat  [optional name]
-#   - filename is relative to this file's directory; avoid spaces in it
+#   - filename is relative to the midi/ folder (just the bare name); no spaces
 #   - the window is [start_beat, end_beat): notes starting before start_beat are
 #     dropped, notes ending past end_beat are truncated, and beats are re-zeroed
 #     so the window's beat 0 == start_beat
 #   - blank lines and lines starting with '#' are ignored
-tesCue.mid   0   10   1
-tesCue.mid  10   20   2
+MIDICues.mid   0   20   1
+MIDICues.mid   80   90   2
+MIDICues.mid   100   110   2
+MIDICues.mid   130   135   2

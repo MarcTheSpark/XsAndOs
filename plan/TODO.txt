@@ -1,0 +1,5 @@
+TODO:
+- Finish going through the reaper project
+- Parse the cues to txt (using python?)
+- Make visual more appealing briefly
+- Start working on the audio

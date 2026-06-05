@@ -2,7 +2,7 @@
 // cuePlayerEngine.scd  --  internals for the MIDI cue player.
 //
 // This is the "library". It is loaded once by midi_cue_player.scd via
-//   this.executeFile("cuePlayerEngine.scd".resolveRelative)
+//   this.executeFile("lib/cuePlayerEngine.scd".resolveRelative)
 // inside a booted server. A performer never edits this file; they drive it
 // through the handful of one-liners exposed at the top of midi_cue_player.scd
 // (~play / ~next / ~stop / ~cues).
@@ -29,38 +29,41 @@
 //     can interrupt the previous cue without a click.
 //   - velocity -> amp is squared (roughly perceptual).
 // ---------------------------------------------------------------------------
-SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1|
+// Shared arg contract: out/freq/amp/dur/atk/rel/gate PLUS the F3 param controls
+// cutoff (LPF) and pan. Param curves (~paramEnvs) are sampled per note and passed
+// as extra args; a synth simply uses whichever it declares. Keep this contract in
+// sync with ~paramList in the param-curve state block below.
+SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0|
 	var ampEnv = EnvGen.kr(
 		Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]),
 		doneAction: 2
 	);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2); // \gate->0 = fast release
-	var sig = Saw.ar(freq) * ampEnv * killEnv * amp;
-	Out.ar(out, sig ! 2);
+	var sig = LPF.ar(Saw.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp;
+	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
-// Sibling voices: same arg contract as \sawCue (out/freq/amp/dur/atk/rel/gate), so
-// any track can be routed to any of them via tracks.txt. Distinct waveforms only --
-// these are stand-ins, not realistic instruments. Room remains for per-cue params (F3).
-SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1|
+// Sibling voices: same arg contract as \sawCue, so any track can be routed to any of
+// them via tracks.txt. Distinct waveforms only -- stand-ins, not realistic instruments.
+SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0|
 	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
-	var sig = LPF.ar(Pulse.ar(freq, 0.35), freq * 6) * ampEnv * killEnv * amp;
-	Out.ar(out, sig ! 2);
+	var sig = LPF.ar(LPF.ar(Pulse.ar(freq, 0.35), freq * 6), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp;
+	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
-SynthDef(\sineCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1|
+SynthDef(\sineCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0|
 	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
-	var sig = SinOsc.ar(freq) * ampEnv * killEnv * amp;
-	Out.ar(out, sig ! 2);
+	var sig = LPF.ar(SinOsc.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp;
+	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
-SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1|
+SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0|
 	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
-	var sig = LFTri.ar(freq) * ampEnv * killEnv * amp;
-	Out.ar(out, sig ! 2);
+	var sig = LPF.ar(LFTri.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp;
+	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
 // ---------------------------------------------------------------------------
@@ -73,6 +76,40 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 ~playing         = nil;                       // (routine:, group:, index:)
 ~tempoEnvs       = Dictionary.new;
 ~defaultTempoEnv = Env([120, 120], [1]);      // held at 120 BPM for the whole cue
+
+// ---------------------------------------------------------------------------
+// F3 -- per-(cue, track, param) parameter curves. Keyed by a composite string
+// "cue\ttrack\tparam" -> Env of the param value over (window) BEATS. track "*"
+// means "all tracks of the cue". Tempo is NOT stored here (it is per-cue and
+// lives in ~tempoEnvs); ~paramList names the non-tempo params, which must be
+// control names the SynthDefs above declare (unknown names are ignored).
+// ---------------------------------------------------------------------------
+~paramEnvs   = Dictionary.new;
+~paramKey    = { |cue, track, param| "%\t%\t%".format(cue, track, param) };
+~paramList   = [\cutoff, \pan, \amp];
+~paramRanges = (cutoff: [20, 12000], pan: [-1, 1], amp: [0, 1]);   // y-axis range per param (editor)
+
+// Sample every param curve defined for (cue, track) -- plus the "*" all-tracks
+// curves -- at `beat`, returning a flat [\param, value, ...] arg list for Synth.
+// A track-specific curve OVERRIDES the "*" curve for the same param (so "*" is a
+// default a particular track can replace): we collect "*" values first, then let
+// the track's own curves overwrite them, so the result is order-independent.
+~paramArgsAt = { |cueName, track, beat|
+	var vals = IdentityDictionary.new;   // param -> sampled value
+	var args = [];
+	var sample = { |wantTrack|
+		~paramEnvs.keysValuesDo({ |k, env|
+			var p = k.split($\t);   // [cue, track, param]
+			if((p[0] == cueName) and: { p[1] == wantTrack }) {
+				vals[p[2].asSymbol] = env.at(beat.clip(0, env.duration));
+			};
+		});
+	};
+	sample.("*");                 // all-tracks defaults
+	sample.(track.asString);      // this track's curves override
+	vals.keysValuesDo({ |param, value| args = args ++ [param, value] });
+	args;
+};
 
 ~trackRoles        = Dictionary.new;          // track index -> (role: \audio|\visual, target: synthdef symbol or \board)
 ~defaultTrackTarget = \sawCue;                 // tracks not listed in tracks.txt sound on this voice
@@ -121,9 +158,28 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 // endBeat are truncated, and beats are re-zeroed to start. (endBeat inf => whole
 // file.)
 // ---------------------------------------------------------------------------
+~midiDebug     = false;       // set true to dump each file's first 20 notes per track on load
+~midiDebugSeen = Set.new;     // paths already dumped (so we print each file only once)
+
 ~readCueNotes = { |path, startBeat = 0, endBeat = inf|
 	var m   = SimpleMIDIFile.read(path);  // default timeMode == \ticks
 	var div = m.division;                 // ticks per quarter note
+
+	// DEBUG: dump the RAW (un-windowed) first 20 notes of each track, once per file,
+	// so you can see exactly which pitches each track carries (e.g. find the board track).
+	if((~midiDebug == true) and: { ~midiDebugSeen.includes(path).not }) {
+		var raw = m.noteSustainEvents;    // [track, absTime, \noteOn, chan, note, velo, dur, upVelo]
+		var tracks = raw.collect({ |e| e[0] }).as(Set).asArray.sort;
+		~midiDebugSeen.add(path);
+		"[midi] % : division %, % note(s), tracks %".format(path.basename, div, raw.size, tracks).postln;
+		tracks.do({ |tk|
+			var es = raw.select({ |e| e[0] == tk });
+			// each entry shown as  pitch@beat  (beat = absTime / division)
+			"[midi]   track % (% notes): %".format(tk, es.size,
+				es.keep(20).collect({ |e| "%@%".format(e[4], (e[1] / div).round(0.01)) })).postln;
+		});
+	};
+
 	m.noteSustainEvents.collect({ |e|
 		// e == [track, absTime, \noteOn, channel, note, velo, dur, upVelo]
 		(startBeat: e[1] / div, durBeats: e[6] / div, midinote: e[4], vel: e[5], track: e[0])
@@ -159,12 +215,13 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 // Load windowed cues from a cue sheet (cues.txt). One cue per line:
 //     filename start_beat end_beat [optional name...]
 //   - Blank lines and lines beginning with '#' are ignored.
-//   - filename is resolved relative to the cue sheet's directory; no spaces.
+//   - filename is resolved relative to the midi/ directory (~midiDir, defaulting
+//     to a sibling 'midi' folder of the cue sheet); no spaces.
 //   - If no name is given the cue is labelled "filename [start-end]".
 // ---------------------------------------------------------------------------
 ~loadCueSheet = { |sheetPath|
-	var path = sheetPath.standardizePath;
-	var dir  = path.dirname;
+	var path    = sheetPath.standardizePath;
+	var midiDir = (~midiDir ? (path.dirname +/+ "../midi")).standardizePath;
 	~cues = [];
 	File.readAllString(path).split($\n).do({ |line|
 		var t = line.stripWhiteSpace.replace("\t", " ");
@@ -172,13 +229,14 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 			var tok = t.split($ ).reject({ |x| x.isEmpty });
 			if(tok.size >= 3) {
 				var fname = tok[0];
+				var base  = fname.basename;          // tempo-env fallback keys on the bare basename
 				var sB    = tok[1].asFloat;
 				var eB    = tok[2].asFloat;
 				var label = if(tok.size > 3) { tok[3..].join(" ") }
-				            { "% [%-%]".format(fname, tok[1], tok[2]) };  // keep the text as written
-				var p     = dir +/+ fname;
+				            { "% [%-%]".format(base, tok[1], tok[2]) };  // keep the text as written
+				var p     = midiDir +/+ fname;
 				~cues = ~cues.add(
-					(name: label, file: fname, path: p,
+					(name: label, file: base, path: p,
 						startBeat: sB, endBeat: eB, notes: ~readCueNotes.(p, sB, eB))
 				);
 			} {
@@ -257,9 +315,27 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 			var t0   = ~beatToTime.(map, nt[\startBeat]);
 			var t1   = ~beatToTime.(map, nt[\startBeat] + nt[\durBeats]);
 			var role = ~trackRoleFor.(nt[\track]);
+			// onset sampling: bake this note's param-curve values at its start beat
+			var params = ~paramArgsAt.(cue[\name], nt[\track], nt[\startBeat]);
 			(time: t0, dur: (t1 - t0).max(0.01), midinote: nt[\midinote], vel: nt[\vel],
-				role: role[\role], target: role[\target])
+				role: role[\role], target: role[\target], params: params)
 		}).sort({ |a, b| a[\time] < b[\time] });
+
+		// DEBUG: show how this cue's tracks resolved (audio synth vs visual board)
+		// and how many visual events were scheduled -- the usual reason "the board
+		// doesn't move" is that the track isn't actually mapped `visual board`.
+		if(~boardDebug == true) {
+			var tracks = cue[\notes].collect(_[\track]).as(Set).asArray.sort;
+			var nVis   = events.count({ |ev| ev[\role] == \visual });
+			"  [debug] cue '%' tracks present: %".format(cue[\name], tracks).postln;
+			tracks.do({ |tk|
+				var r       = ~trackRoleFor.(tk);
+				var pitches = cue[\notes].select({ |nt| nt[\track] == tk }).collect(_[\midinote]);
+				"  [debug]   track % -> % %   first pitches: %".format(
+					tk, r[\role], r[\target], pitches.keep(10)).postln;
+			});
+			"  [debug] scheduled % visual + % audio event(s)".format(nVis, events.size - nVis).postln;
+		};
 
 		group = Group.new(s);
 
@@ -273,9 +349,18 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 						\freq, ev[\midinote].midicps,
 						\amp,  ~masterAmp * (ev[\vel] / 127).squared,
 						\dur,  ev[\dur]
-					], group);
+					] ++ ev[\params], group);   // append F3 onset-sampled param values
+				} {
+					// F2 visualization: pitch -> board move. ~boardEvent defers to AppClock.
+					if(ev[\role] == \visual) {
+						if(~boardDebug == true) {
+							"  [debug] visual note fired: pitch % vel % @ %.2f s".format(
+								ev[\midinote], ev[\vel], ev[\time]).postln;
+						};
+						if(~boardEvent.isNil) { "  [debug] ~boardEvent is nil -- boardGui.scd not loaded?".postln };
+						~boardEvent !? { ~boardEvent.(ev[\midinote], ev[\vel]) };
+					};
 				};
-				// (Phase 3 / F2: ev[\role] == \visual -> ~boardEvent.(...) wrapped in .defer)
 			});
 			// Reached only on NATURAL completion -- a manual stop/interrupt halts
 			// the routine first. Mark as stopped (so ~stop steps back next time) and
@@ -301,14 +386,15 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 
 // ===========================================================================
 // PERFORMER INTERFACE  (the names midi_cue_player.scd documents).
-//   ~play.(id)  cue NAME ("1", "big finish", ...) or, failing that, a raw index
+//   ~play.(id)  cue NAME ("1", "big finish", ...) or, failing that, a 1-based
+//               cue number (matching the score; ~play.(1) is the first cue)
 //   ~next.()    advance + play the next cue
 //   ~stop.()    if sounding: fade out; if ALREADY stopped: step the cursor back
 //               one cue (no playback) so the next ~next replays the earlier cue
 // ===========================================================================
 ~play = { |id|
 	var idx = ~cues.detectIndex({ |c| c[\name] == id.asString });
-	~playCue.(idx ? id);
+	~playCue.(idx ? (id.asInteger - 1));   // no name match: id is a 1-based cue number
 };
 
 ~next = ~playNext;
@@ -442,43 +528,61 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 	};
 };
 
-~saveTempoEnvs = { |path|
-	var p = path.standardizePath, f = File(p, "w");
-	f.write("# tempo envelopes:  name | bpm levels | beat durations | curves\n");
-	~tempoEnvs.keysValuesDo({ |name, env|
-		var curves = env.curves;
-		if(curves.isArray.not) { curves = Array.fill(env.times.size.max(1), curves) };
-		f.write("% | % | % | %\n".format(
-			name,
-			env.levels.join(" "),
-			env.times.join(" "),
-			curves.join(" ")
-		));
-	});
-	f.close;
-	"saved % tempo env(s) to %".format(~tempoEnvs.size, p).postln;
+// One persisted line: name | track | param | levels | durations | curves.
+// Tempo envelopes are written with track "*" and param "tempo".
+~envToLine = { |name, track, param, env|
+	var curves = env.curves;
+	if(curves.isArray.not) { curves = Array.fill(env.times.size.max(1), curves) };
+	"% | % | % | % | % | %".format(
+		name, track, param, env.levels.join(" "), env.times.join(" "), curves.join(" "));
 };
 
+~saveTempoEnvs = { |path|
+	var p = path.standardizePath, f = File(p, "w"), n = 0;
+	f.write("# curves:  name | track | param | bpm/value levels | beat durations | curves\n");
+	f.write("#   param 'tempo' (track '*') = the cue's tempo curve; others = (cue, track, param)\n");
+	~tempoEnvs.keysValuesDo({ |name, env| f.write(~envToLine.(name, "*", "tempo", env) ++ "\n"); n = n + 1 });
+	~paramEnvs.keysValuesDo({ |k, env|
+		var pp = k.split($\t);   // [cue, track, param]
+		f.write(~envToLine.(pp[0], pp[1], pp[2], env) ++ "\n");  n = n + 1;
+	});
+	f.close;
+	"saved % curve(s) (% tempo, % param) to %".format(n, ~tempoEnvs.size, ~paramEnvs.size, p).postln;
+};
+
+// Reads both the new 6-field format and the legacy 4-field tempo format
+// (name | levels | durs | curves). Trailing 3 columns are always levels/durs/curves;
+// a missing param column means 'tempo', a missing track column means '*' (all tracks).
 ~loadTempoEnvs = { |path|
-	var p = path.standardizePath, n = 0;
+	var p = path.standardizePath, nt = 0, np = 0;
 	if(File.exists(p)) {
 		File.readAllString(p).split($\n).do({ |line|
 			var t = line.stripWhiteSpace;
 			if(t.notEmpty and: { t[0] != $# }) {
 				var parts = t.split($|).collect(_.stripWhiteSpace);
-				if(parts.size >= 3) {
-					var name   = parts[0];
-					var levels = parts[1].split($ ).reject(_.isEmpty).collect(_.asFloat);
-					var times  = parts[2].split($ ).reject(_.isEmpty).collect(_.asFloat);
-					var curves = if(parts.size >= 4) {
-						parts[3].split($ ).reject(_.isEmpty).collect({ |c| ~parseCurve.(c) })
-					} { \lin };
-					~tempoEnvs[name] = Env(levels, times, curves);
-					n = n + 1;
+				var name, track = "*", param = "tempo", tail;
+				case
+					{ parts.size == 4 } { name = parts[0];                       tail = parts[1..3] }  // legacy tempo
+					{ parts.size == 5 } { name = parts[0]; param = parts[1];     tail = parts[2..4] }  // name|param|...
+					{ parts.size >= 6 } { name = parts[0]; track = parts[1]; param = parts[2]; tail = parts[3..5] };
+				if(tail.notNil) {
+					var levels = tail[0].split($ ).reject(_.isEmpty).collect(_.asFloat);
+					var times  = tail[1].split($ ).reject(_.isEmpty).collect(_.asFloat);
+					var curves = tail[2].split($ ).reject(_.isEmpty).collect({ |c| ~parseCurve.(c) });
+					var env;
+					if(curves.isEmpty) { curves = [\lin] };
+					env = Env(levels, times, curves);
+					if(param == "tempo") {
+						~tempoEnvs[name] = env;  nt = nt + 1;
+					} {
+						~paramEnvs[~paramKey.(name, track, param)] = env;  np = np + 1;
+					};
+				} {
+					"loadTempoEnvs: skipping malformed line: %".format(line).warn;
 				};
 			};
 		});
-		"loaded % tempo env(s) from %".format(n, p).postln;
+		"loaded % tempo + % param curve(s) from %".format(nt, np, p).postln;
 	};
 };
 

@@ -1,0 +1,8 @@
+# curves:  name | track | param | bpm/value levels | beat durations | curves
+#   param 'tempo' (track '*') = the cue's tempo curve; others = (cue, track, param)
+2 | * | tempo | 100.0 160.0 | 10.0 | exp
+1 | * | tempo | 60.0 77.15 68.61 87.21 | 3.04 3.5 3.46 | exp exp exp
+1 | 1 | pan | 0.98 -0.84 | 10.0 | lin
+1 | * | pan | 0.0 0.0 | 10.0 | lin
+1 | 1 | amp | 0.09 0.22 0.84 | 4.79 5.21 | lin lin
+1 | * | amp | 0.5 0.5 | 10.0 | lin

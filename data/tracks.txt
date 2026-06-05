@@ -13,4 +13,4 @@
 1  audio  pulseCue
 2  audio  sawCue
 3  audio  sineCue
-4  audio  triCue
+5  visual board

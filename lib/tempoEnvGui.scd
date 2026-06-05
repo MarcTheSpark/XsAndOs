@@ -45,20 +45,49 @@
 	(beats: beats, bpms: env.levels, curves: curves);
 };
 
-~tgModelToEnv = { |m|
+// floor clamps the levels (tempo needs BPM >= 1; params use their own range low,
+// which may be 0 or negative). The model field is named \bpms for historical
+// reasons but holds generic y-values (BPM for tempo, param value otherwise).
+~tgModelToEnv = { |m, floor = 1|
 	var beats = m[\beats];
 	var durs  = (1 .. (beats.size - 1)).collect({ |i| (beats[i] - beats[i - 1]).max(0.001).round(0.01) });
-	Env(m[\bpms].collect({ |v| v.max(1).round(0.01) }), durs, m[\curves]);
+	Env(m[\bpms].collect({ |v| v.max(floor).round(0.01) }), durs, m[\curves]);
 };
 
 ~openTempoEnvGui = {
-	var win, env, cueMenu, curveMenu, curveNumBox, addBtn, remBtn, audBtn, saveBtn, info;
-	var minBpmBox, maxBpmBox;
+	var win, env, cueMenu, trackMenu, paramMenu, curveMenu, curveNumBox, addBtn, remBtn, audBtn, saveBtn, info;
+	var minBpmBox, maxBpmBox, yLabel;
 	var minBPM = 40, maxBPM = 240, cueLen = 16;
 	var currentName, model, names, updating = false;
+	var curParam = \tempo, curTrack = "*", trackItems, paramItems;
 	var refresh, readView, loadCue, updateInfo, syncCurveMenu;
+	var storeEnv, getEnv, yFloor, defaultModel;
 
 	names = ~cues.collect({ |c| c[\name] });
+
+	// The editor edits one (cue, track, param) curve at a time. param \tempo is the
+	// per-cue tempo curve in ~tempoEnvs (track ignored); every other param is a
+	// (cue, track, param) curve in ~paramEnvs. These three helpers hide which dict.
+	storeEnv = { |e|
+		if(curParam == \tempo) { ~tempoEnvs[currentName] = e }
+		{ ~paramEnvs[~paramKey.(currentName, curTrack, curParam)] = e };
+	};
+	getEnv = {
+		if(curParam == \tempo) { ~tempoEnvs[currentName] }
+		{ ~paramEnvs[~paramKey.(currentName, curTrack, curParam)] };
+	};
+	yFloor = { if(curParam == \tempo) { 1 } { ~paramRanges[curParam][0] } };
+	defaultModel = {
+		var v = if(curParam == \tempo) { 120 }
+		        { switch(curParam, \cutoff, { 8000 }, \pan, { 0 }, \amp, { 0.5 }, { 0 }) };
+		(beats: [0, cueLen], bpms: [v, v], curves: [\lin]);
+	};
+
+	// track menu lists every track index actually present in the cues, plus "*";
+	// param menu is tempo + the engine's ~paramList.
+	trackItems = ["*"] ++ ~cues.collect({ |c| c[\notes].collect(_[\track]) })
+		.flatten.as(Set).asArray.sort.collect(_.asString);
+	paramItems = ["tempo"] ++ ~paramList.collect(_.asString);
 
 	if(names.isEmpty) {
 		"tempoGui: no cues loaded -- run SETUP / ~loadCueSheet first.".warn;
@@ -110,7 +139,7 @@
 				model[\beats][0] = 0; model[\beats][n - 1] = cueLen;
 				while({ model[\curves].size < (n - 1) }) { model[\curves] = model[\curves].add(\lin) };
 				model[\curves] = model[\curves].keep(n - 1);
-				~tempoEnvs[currentName] = ~tgModelToEnv.(model);
+				storeEnv.(~tgModelToEnv.(model, yFloor.value));
 				updating = true; env.value_([xs, ys]); updating = false;   // snap endpoints back
 				updateInfo.value;
 			};
@@ -118,10 +147,11 @@
 
 		loadCue = { |name|
 			var cue = ~cues.detect({ |c| c[\name] == name });
+			var existing;
 			currentName = name;
 			cueLen = ~cueBeatLength.(cue);
-			model = if(~tempoEnvs[name].notNil) { ~tgEnvToModel.(~tempoEnvs[name]) }
-			        { (beats: [0, cueLen], bpms: [120, 120], curves: [\lin]) };
+			existing = getEnv.value;
+			model = if(existing.notNil) { ~tgEnvToModel.(existing) } { defaultModel.value };
 			// stretch/clamp the envelope so it spans exactly the cue length
 			if(model[\beats].last > 0) {
 				var scale = cueLen / model[\beats].last;
@@ -129,9 +159,11 @@
 			};
 			model[\beats][0] = 0;
 			model[\beats][model[\beats].size - 1] = cueLen;
-			# minBPM, maxBPM = ~tgAutoRange.(model[\bpms]);   // auto-fit the BPM range
+			// y-range: auto-fit for tempo (BPM), fixed per-param range otherwise
+			if(curParam == \tempo) { # minBPM, maxBPM = ~tgAutoRange.(model[\bpms]) }
+			{ # minBPM, maxBPM = ~paramRanges[curParam] };
 			minBpmBox.value_(minBPM); maxBpmBox.value_(maxBPM);
-			~tempoEnvs[name] = ~tgModelToEnv.(model);
+			storeEnv.(~tgModelToEnv.(model, yFloor.value));
 			refresh.value;
 		};
 
@@ -142,12 +174,31 @@
 			syncCurveMenu.value;
 		});
 
+		// track selector -- which track's param curve to edit ("*" = all tracks).
+		// Disabled while editing \tempo (tempo is per-cue, one timeline, track-agnostic).
+		trackMenu = PopUpMenu().items_(trackItems).action_({ |m|
+			readView.value;
+			curTrack = trackItems[m.value];
+			loadCue.value(currentName);
+			syncCurveMenu.value;
+		});
+
+		// param selector -- "tempo" (BPM) or one of the engine's ~paramList controls.
+		paramMenu = PopUpMenu().items_(paramItems).action_({ |m|
+			readView.value;
+			curParam = if(m.value == 0) { \tempo } { ~paramList[m.value - 1] };
+			trackMenu.enabled_(curParam != \tempo);
+			yLabel.string_(if(curParam == \tempo) { "BPM" } { curParam.asString });
+			loadCue.value(currentName);
+			syncCurveMenu.value;
+		});
+
 		curveMenu = PopUpMenu().items_(~tgCurveTypes.collect(_.asString)).action_({ |m|
 			var seg = env.index.clip(0, (model[\curves].size - 1).max(0));
 			(model[\curves].size > 0).if {
 				model[\curves][seg] = ~tgCurveTypes[m.value];
 				curveNumBox.value_(0);                            // a named shape clears the numeric box
-				~tempoEnvs[currentName] = ~tgModelToEnv.(model);
+				storeEnv.(~tgModelToEnv.(model, yFloor.value));
 				refresh.value;
 			};
 		});
@@ -159,7 +210,7 @@
 				var seg = env.index.clip(0, (model[\curves].size - 1).max(0));
 				(model[\curves].size > 0).if {
 					model[\curves][seg] = b.value;
-					~tempoEnvs[currentName] = ~tgModelToEnv.(model);
+					storeEnv.(~tgModelToEnv.(model, yFloor.value));
 					refresh.value;
 				};
 			});
@@ -171,7 +222,7 @@
 			model[\beats]  = b[..insAt-1] ++ [((b[insAt-1] + b[insAt]) / 2).round(0.01)] ++ b[insAt..];
 			model[\bpms]   = v[..insAt-1] ++ [((v[insAt-1] + v[insAt]) / 2).round(0.01)] ++ v[insAt..];
 			model[\curves] = c[..ci-1] ++ [c[ci]] ++ c[ci..];        // split segment, keep its curve
-			~tempoEnvs[currentName] = ~tgModelToEnv.(model);
+			storeEnv.(~tgModelToEnv.(model, yFloor.value));
 			refresh.value;
 		});
 
@@ -182,7 +233,7 @@
 				model[\beats]  = model[\beats][..idx-1] ++ model[\beats][idx+1..];
 				model[\bpms]   = model[\bpms][..idx-1]  ++ model[\bpms][idx+1..];
 				model[\curves] = model[\curves][..ci-1] ++ model[\curves][ci+1..];
-				~tempoEnvs[currentName] = ~tgModelToEnv.(model);
+				storeEnv.(~tgModelToEnv.(model, yFloor.value));
 				refresh.value;
 			};
 		});
@@ -197,7 +248,8 @@
 		minBpmBox = NumberBox().decimals_(2).align_(\right)
 			.action_({ |b| minBPM = b.value.clip(1, maxBPM - 1); refresh.value });
 
-		info = StaticText().string_("");
+		info   = StaticText().string_("");
+		yLabel = StaticText().string_("BPM").align_(\center);
 
 		env = EnvelopeView()
 			.keepHorizontalOrder_(true)
@@ -205,13 +257,15 @@
 			.drawLines_(true).drawRects_(true)
 			.action_({ readView.value; syncCurveMenu.value });
 
-		win = Window("Tempo Envelope Editor  (x = beats, y = BPM)", Rect(200, 200, 680, 440));
+		win = Window("Curve Editor  (x = beats, y = tempo / param)", Rect(200, 200, 680, 470));
 		win.layout_(VLayout(
 			HLayout( StaticText().string_("cue:").maxWidth_(28), cueMenu, nil, audBtn, saveBtn ),
+			HLayout( StaticText().string_("track:").maxWidth_(38), trackMenu,
+				StaticText().string_("param:").maxWidth_(44), paramMenu, nil ),
 			HLayout(
 				env,
 				View().fixedWidth_(64).layout_(
-					VLayout( StaticText().string_("BPM").align_(\center), maxBpmBox, nil, minBpmBox )
+					VLayout( yLabel, maxBpmBox, nil, minBpmBox )
 				)
 			),
 			HLayout( addBtn, remBtn, StaticText().string_("curve:").maxWidth_(42), curveMenu,
@@ -220,6 +274,7 @@
 		));
 		win.front;
 
+		trackMenu.enabled_(false);          // start on \tempo, which is track-agnostic
 		loadCue.value(names[0]);
 		cueMenu.value_(0);
 		syncCurveMenu.value;
