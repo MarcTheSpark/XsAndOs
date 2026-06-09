@@ -98,6 +98,7 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 ~cues            = [];                       // [ (name:, file:, path:, startBeat:, endBeat:, notes:) ]
 ~cueIndex        = 0;                         // cursor: index of the cue ~next will play
 ~playing         = nil;                       // (routine:, group:, index:)
+~pendingClears   = 0;                         // clear-board (48) visual notes in the playing cue not yet fired
 ~tempoEnvs       = Dictionary.new;
 ~defaultTempoEnv = Env([120, 120], [1]);      // held at 120 BPM for the whole cue
 
@@ -310,6 +311,13 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 		g.set(\gate, 0);                              // fade sounding voices, they self-free
 		SystemClock.sched(0.2, { g.free; nil });      // reap the (now empty) group
 		~playing = nil;
+		// If the interrupted cue had a clear (48) signal -- one not yet fired, or
+		// one already fired and still mid-fade -- snap the board to cleared NOW
+		// (instant, dur 0) rather than leaving it half-drawn or mid-fade.
+		if((~pendingClears > 0) or: { ~boardFadeRoutine.notNil }) {
+			~boardEvent !? { ~boardEvent.((~boardClearPitch ? 48), 127, 0) };
+		};
+		~pendingClears = 0;
 	};
 };
 
@@ -345,6 +353,12 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 			(time: t0, dur: (t1 - t0).max(0.01), midinote: nt[\midinote], vel: nt[\vel],
 				role: role[\role], target: role[\target], params: params)
 		}).sort({ |a, b| a[\time] < b[\time] });
+
+		// Count clear-board (48) visual notes so a premature stop/interrupt can
+		// finish the clear instantly (decremented as each one actually fires).
+		~pendingClears = events.count({ |ev|
+			(ev[\role] == \visual) and: { ev[\midinote] == (~boardClearPitch ? 48) }
+		});
 
 		// DEBUG: show how this cue's tracks resolved (audio synth vs visual board)
 		// and how many visual events were scheduled -- the usual reason "the board
@@ -386,6 +400,9 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 						if(~boardEvent.isNil) { "  [debug] ~boardEvent is nil -- boardGui.scd not loaded?".postln };
 						// ev[\dur] is the note's tempo-warped length in seconds; the board
 						// uses it as the fade-out time for a clear (pitch 48).
+						if(ev[\midinote] == (~boardClearPitch ? 48)) {
+							~pendingClears = (~pendingClears - 1).max(0);   // this clear is now firing
+						};
 						~boardEvent !? { ~boardEvent.(ev[\midinote], ev[\vel], ev[\dur]) };
 					};
 				};

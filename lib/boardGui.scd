@@ -113,11 +113,13 @@
 			});
 			~boardClear.value;                    // marks faded out -> reset state
 			~boardFade = 1.0;
+			~boardFadeRoutine = nil;              // fade done (so "is a fade running?" reads false)
 			~boardDraw.value;
 		}).play(AppClock);
 	} {
 		~boardClear.value;
 		~boardFade = 1.0;
+		~boardFadeRoutine = nil;
 		~boardDraw.value;
 	};
 	if(~boardDebug == true) { "  [debug] board: pitch 48 -> CLEAR (fade %.2f s)".format(dur).postln };
@@ -134,8 +136,12 @@
 		if(pitch == ~boardClearPitch) {
 			~boardFadeOut.(dur);                  // clear board -> fade out over the note length
 		} {
-			~boardFadeRoutine.stop;               // a new move cancels any in-flight fade
-			~boardFade = 1.0;                     // ...and is drawn fully opaque
+			~boardFadeRoutine.notNil.if {         // a clear was mid-fade: finish it first so the
+				~boardFadeRoutine.stop;            // new move lands on a freshly cleared board
+				~boardClear.value;
+				~boardFadeRoutine = nil;
+			};
+			~boardFade = 1.0;                     // a move is always drawn fully opaque
 			~boardApply.(pitch, vel);
 			~boardDraw.value;
 		};
