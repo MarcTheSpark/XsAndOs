@@ -12,7 +12,8 @@
 // Pitch -> board:
 //   60..68  = Player 1 (X), square = pitch - 60   (0..8, row-major)
 //   72..80  = Player 2 (O), square = pitch - 72
-//   48      = clear the board
+//   48      = clear the board -- fades the marks out over the note's length (its
+//             tempo-warped duration in seconds), then resets the state
 //   velocity 127 marks a WINNING-line cell -> coloured turquoise (P1) / maroon (P2)
 //   the newest move is shown bold
 //
@@ -32,6 +33,8 @@
 ~boardNewest = nil;                       // index of the most recent move (drawn bold)
 ~boardWin    = nil;                        // the Window, or nil if never opened
 ~boardCells  = nil;                        // 9 StaticTexts, row-major, or nil
+~boardFade   = 1.0;                        // mark opacity 0..1 (a clear-board note fades this 1->0)
+~boardFadeRoutine = nil;                   // the running fade-out Routine, or nil
 
 ~boardColors = (
 	mark:  Color.white,                    // a normal X / O
@@ -86,6 +89,7 @@
 				1, { if(cell[\win]) { ~boardColors[\p1win] } { ~boardColors[\mark] } },
 				2, { if(cell[\win]) { ~boardColors[\p2win] } { ~boardColors[\mark] } },
 				{ ~boardColors[\empty] });
+			col = Color(col.red, col.green, col.blue, col.alpha * ~boardFade);   // apply fade
 			t.string_(mark);
 			t.font_(Font("Helvetica", 56, bold: bold));
 			t.stringColor_(col);
@@ -93,15 +97,48 @@
 	};
 };
 
+// Fade the marks out over `dur` seconds (~30 fps on AppClock), then clear the
+// state and snap opacity back to full. Cancels any fade already in flight. A
+// non-positive dur clears instantly. Must be called on AppClock (~boardEvent is).
+~boardFadeOut = { |dur = 0|
+	~boardFadeRoutine.stop;                       // cancel a fade already running
+	if(dur > 0.05) {
+		var steps = (dur * 30).max(1).round.asInteger;
+		var dt    = dur / steps;
+		~boardFadeRoutine = Routine({
+			steps.do({ |k|
+				~boardFade = 1.0 - ((k + 1) / steps);
+				~boardDraw.value;
+				dt.wait;
+			});
+			~boardClear.value;                    // marks faded out -> reset state
+			~boardFade = 1.0;
+			~boardDraw.value;
+		}).play(AppClock);
+	} {
+		~boardClear.value;
+		~boardFade = 1.0;
+		~boardDraw.value;
+	};
+	if(~boardDebug == true) { "  [debug] board: pitch 48 -> CLEAR (fade %.2f s)".format(dur).postln };
+};
+
 // Public entry called by the engine for each visual note. Wrapped in .defer so
 // the SystemClock cue routine never touches the GUI directly. Safe with no window.
-~boardEvent = { |pitch, vel = 127|
+// `dur` is the note's tempo-warped length in seconds; only the clear note uses it.
+~boardEvent = { |pitch, vel = 127, dur = 0|
 	{
 		if((~boardDebug == true) and: { ~boardCells.isNil }) {
 			"  [debug] board: ~boardEvent called but no window open (run ~boardGui.()).".postln;
 		};
-		~boardApply.(pitch, vel);
-		~boardDraw.value;
+		if(pitch == ~boardClearPitch) {
+			~boardFadeOut.(dur);                  // clear board -> fade out over the note length
+		} {
+			~boardFadeRoutine.stop;               // a new move cancels any in-flight fade
+			~boardFade = 1.0;                     // ...and is drawn fully opaque
+			~boardApply.(pitch, vel);
+			~boardDraw.value;
+		};
 	}.defer;
 };
 

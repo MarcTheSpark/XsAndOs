@@ -384,7 +384,9 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 								ev[\midinote], ev[\vel], ev[\time]).postln;
 						};
 						if(~boardEvent.isNil) { "  [debug] ~boardEvent is nil -- boardGui.scd not loaded?".postln };
-						~boardEvent !? { ~boardEvent.(ev[\midinote], ev[\vel]) };
+						// ev[\dur] is the note's tempo-warped length in seconds; the board
+						// uses it as the fade-out time for a clear (pitch 48).
+						~boardEvent !? { ~boardEvent.(ev[\midinote], ev[\vel], ev[\dur]) };
 					};
 				};
 			});
