@@ -67,3 +67,5 @@ s.waitForBoot({
 ~stop.();      // stop; press again while already stopped to rewind the cursor one cue (no replay)
 
 ~cues.do({ |c, i| "[%] %".format(i + 1, c[\name]).postln });   // list the loaded cues (1-based)
+
+~fileTracks.();

@@ -66,6 +66,30 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
+// Same arg contract as the siblings (note dur baked into a timed ampEnv that
+// self-frees) PLUS velvet's own sharp/chaos/sat controls. The earlier version
+// used a GATED adsr with no `dur`, so notes sustained until the cue's group was
+// stopped -- here ampEnv runs for `dur` seconds and frees, killEnv keeps the
+// fast cue-stop fade.
+SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sharp=0.5, chaos=0, sat=0.3, pan=0|
+	var atk     = sharp.linexp(0, 1, 0.4, 0.002);
+	var ampEnv  = EnvGen.kr(
+		Env([0, 1, 0.78, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, -2, -2]),
+		doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	var jit   = LFNoise2.kr(8 + (chaos * 24)) * (chaos * 0.08);
+	var f     = freq * (1 + jit);
+	var osc   = XFade2.ar(SinOsc.ar(f), Saw.ar(f), sat.linlin(0, 1, -1, 1));
+	var drive = 1 + (sat * 8);
+	var fenv  = EnvGen.kr(Env.perc(0.001, 0.2 + (atk * 3)), gate);
+	var cut   = (freq * (2 + (sat * 8)) * (1 + (fenv * (0.5 + (sharp * 6))))).clip(40, 18000);
+	osc = (osc * drive).tanh / drive.sqrt;
+	osc = osc + (PinkNoise.ar(chaos * 0.3) * fenv);
+	osc = RLPF.ar(osc, cut, 0.2 + (chaos * 0.5));
+	Out.ar(out, Pan2.ar(osc * ampEnv * killEnv * amp, pan));
+}).add;
+
+
 // ---------------------------------------------------------------------------
 // State + tempo-envelope storage. ~tempoEnvs maps a key -> Env of BPM over
 // (window) BEATS. Lookup tries the cue's name, then its file, then the default.
@@ -86,8 +110,8 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 // ---------------------------------------------------------------------------
 ~paramEnvs   = Dictionary.new;
 ~paramKey    = { |cue, track, param| "%\t%\t%".format(cue, track, param) };
-~paramList   = [\cutoff, \pan, \amp];
-~paramRanges = (cutoff: [20, 12000], pan: [-1, 1], amp: [0, 1]);   // y-axis range per param (editor)
+~paramList   = [\cutoff, \pan, \amp, \chaos, \sharp];
+~paramRanges = (cutoff: [20, 12000], pan: [-1, 1], amp: [0, 1], chaos: [0, 1], sharp: [0, 1]);   // y-axis range per param (editor)
 
 // Sample every param curve defined for (cue, track) -- plus the "*" all-tracks
 // curves -- at `beat`, returning a flat [\param, value, ...] arg list for Synth.
@@ -112,7 +136,6 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 };
 
 ~trackRoles        = Dictionary.new;          // track index -> (role: \audio|\visual, target: synthdef symbol or \board)
-~defaultTrackTarget = \sawCue;                 // tracks not listed in tracks.txt sound on this voice
 ~trackMapPath      = nil;                       // default track-map config path (SETUP sets this)
 
 ~midiMap           = Dictionary.new;          // "type chan num" -> action token (\next, \stop, or cue name)
@@ -126,9 +149,10 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 };
 
 // Per-track routing. A track maps to (role: \audio, target: <synthdef>) or
-// (role: \visual, target: \board). Tracks not listed default to an audio voice.
+// (role: \visual, target: \board). Tracks NOT listed in tracks.txt return nil --
+// their notes are discarded (not played), not routed to a default voice.
 ~trackRoleFor = { |track|
-	~trackRoles[track] ?? { (role: \audio, target: ~defaultTrackTarget) };
+	~trackRoles[track];
 };
 
 // Load tracks.txt:  one line  `track  role  target`  (e.g. `1 audio pulseCue`,
@@ -311,7 +335,8 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 
 		// Map each note's start/end beat through the integrated tempo curve, and
 		// resolve its track's role/target (which synth to play, or \visual board).
-		events = cue[\notes].collect({ |nt|
+		// Notes on tracks with no tracks.txt mapping (role nil) are discarded.
+		events = cue[\notes].select({ |nt| ~trackRoleFor.(nt[\track]).notNil }).collect({ |nt|
 			var t0   = ~beatToTime.(map, nt[\startBeat]);
 			var t1   = ~beatToTime.(map, nt[\startBeat] + nt[\durBeats]);
 			var role = ~trackRoleFor.(nt[\track]);
@@ -331,8 +356,9 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 			tracks.do({ |tk|
 				var r       = ~trackRoleFor.(tk);
 				var pitches = cue[\notes].select({ |nt| nt[\track] == tk }).collect(_[\midinote]);
-				"  [debug]   track % -> % %   first pitches: %".format(
-					tk, r[\role], r[\target], pitches.keep(10)).postln;
+				"  [debug]   track % -> %   first pitches: %".format(
+					tk, if(r.isNil) { "(unmapped: discarded)" } { "% %".format(r[\role], r[\target]) },
+					pitches.keep(10)).postln;
 			});
 			"  [debug] scheduled % visual + % audio event(s)".format(nVis, events.size - nVis).postln;
 		};
@@ -407,6 +433,54 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 			~cueIndex = (~cueIndex - 1).max(0);
 			"stepped back -- next cue is [%] %".format(~cueIndex, ~cues[~cueIndex][\name]).postln;
 		};
+	};
+};
+
+// ===========================================================================
+// INSPECTION  --  what tracks are present, with note counts and first pitches.
+//   ~cueTracks.([id])   tracks of one cue's WINDOWED notes (default: the cursor
+//                       cue, i.e. what ~next would play). id is a cue name or a
+//                       1-based number, same as ~play.
+//   ~fileTracks.([id])  tracks of that cue's WHOLE underlying MIDI file (un-
+//                       windowed), useful to see everything before a cue carves
+//                       its window out.
+// Both print a summary and return the sorted list of track indices.
+// ===========================================================================
+~midiNoteName = { |n|
+	var names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+	"%%".format(names[n % 12], n.div(12) - 1);    // 60 -> "C4"
+};
+
+~tracksReport = { |notes, label, firstN = 8|
+	var tracks = notes.collect(_[\track]).as(Set).asArray.sort;
+	"% : % note(s) across % track(s)".format(label, notes.size, tracks.size).postln;
+	tracks.do({ |tk|
+		var es     = notes.select({ |nt| nt[\track] == tk }).sort({ |a, b| a[\startBeat] < b[\startBeat] });
+		var r      = ~trackRoleFor.(tk);
+		var target = if(r.isNil) { "(unmapped: discarded)" } { r[\target] };
+		var first  = es.keep(firstN).collect({ |nt| "%(%)".format(nt[\midinote], ~midiNoteName.(nt[\midinote])) });
+		"  track % -> %: % note(s); first: %".format(tk, target, es.size, first).postln;
+	});
+	tracks;
+};
+
+~resolveCueIndex = { |id|
+	if(id.isNil) { ~cueIndex } {                  // default: the cursor cue
+		~cues.detectIndex({ |c| c[\name] == id.asString }) ?? { id.asInteger - 1 }
+	};
+};
+
+~cueTracks = { |id|
+	var i = ~resolveCueIndex.(id), cue = ~cues[i];
+	if(cue.isNil) { "cueTracks: no cue for %".format(id ? "(cursor)").warn; nil } {
+		~tracksReport.(cue[\notes], "cue [%] %".format(i + 1, cue[\name]));
+	};
+};
+
+~fileTracks = { |id|
+	var i = ~resolveCueIndex.(id), cue = ~cues[i];
+	if(cue.isNil) { "fileTracks: no cue for %".format(id ? "(cursor)").warn; nil } {
+		~tracksReport.(~readCueNotes.(cue[\path]), "file % (whole)".format(cue[\file]));
 	};
 };
 
