@@ -1,3 +1,16 @@
 # MIDI cue source files (binary, managed outside git)
 *.mid
 *.midi
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Reaper project backups / autosaves and rendered media
+reaper/AutoSaves/
+reaper/Backups/
+reaper/Media/
+*.rpp-bak
+
+# Generated extraction output (review, then copy into data/)
+reaper/extracted/
