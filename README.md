@@ -7,9 +7,10 @@ baked into the MIDI), and drives a tic-tac-toe visualization board.
 ## Run
 
 1. Install the `wslib` quark once: `Quarks.install("wslib");` then recompile the class library.
-2. Open `midi_cue_player.scd`, put the cursor in the `SETUP` block at the bottom, and
-   evaluate it (Ctrl+Enter). It boots the server and loads everything.
-3. Drive cues with the one-liners at the top of the file:
+2. Open `midi_cue_player.scd` (or the stripped-down `midi_cue_player_simple.scd`) and
+   evaluate the single SETUP line at the top (Ctrl+Enter). It boots the server and loads
+   everything; wait for `Ready.`
+3. Drive cues with the one-liners below it:
    - `~play.(id)` — play a cue by name or 1-based number
    - `~next.()` — play the next cue (advances; tapping again mid-cue skips to the next)
    - `~stop.()` — fade out, staying on the current cue
@@ -18,8 +19,8 @@ baked into the MIDI), and drives a tic-tac-toe visualization board.
 
 ## Layout
 
-- `midi_cue_player.scd` — the performer entry point (the only file you touch live)
-- `lib/` — engine, tempo-curve GUI, and visualization board
+- `midi_cue_player.scd` — full entry point; `midi_cue_player_simple.scd` — minimal control sheet for a performer
+- `lib/` — `setup.scd` (one-shot session setup), engine, tempo-curve GUI, and visualization board
 - `data/` — cue sheet, tempo curves, track map, MIDI bindings (plain text)
 - `midi/` — the `.mid` source files
 - `plan/` — spec / TODO docs

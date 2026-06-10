@@ -1,5 +1,3 @@
 TODO:
-- Finish going through the reaper project
-- Parse the cues to txt (using python?)
-- Make visual more appealing briefly
+- Drawing uses SVGs so that I can easily change look
 - Start working on the audio
