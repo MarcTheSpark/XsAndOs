@@ -11,7 +11,10 @@
 ~tempoGui.();
 
 // --- Visualization: open the Xs-and-Os board (driven by any `visual board` track) ---
-~boardGui.();
+~boardGui.();              // default 500x500 board, windowed
+~boardGui.(700@700);       // bigger fixed board (centered in the window)
+~boardGui.(500@500, true); // fullscreen (Escape / close to exit)
+
 
 // --- MIDI learn: bind a foot pedal / pad to an action, then play hands-free ---
 ~learnMIDINext.(true);        // arm, then press a control to bind it to "next"
@@ -52,6 +55,7 @@ s.waitForBoot({
 	~setupMIDI.value;                                 // open MIDI in + load any saved bindings
 
 	"Ready. ~play/~next/~stop  |  ~tempoGui for tempo curves  |  ~learnMIDINext/Stop for MIDI.".postln;
+	~boardGui.(dimensions:800@800, fullScreen:true);
 });
 )
 

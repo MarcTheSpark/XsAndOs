@@ -30,39 +30,41 @@
 //   - velocity -> amp is squared (roughly perceptual).
 // ---------------------------------------------------------------------------
 // Shared arg contract: out/freq/amp/dur/atk/rel/gate PLUS the F3 param controls
-// cutoff (LPF) and pan. Param curves (~paramEnvs) are sampled per note and passed
-// as extra args; a synth simply uses whichever it declares. Keep this contract in
-// sync with ~paramList in the param-curve state block below.
-SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0|
+// cutoff (LPF), pan, and ampScale. Param curves (~paramEnvs) drive control buses that
+// note synths .map their matching controls to, so a synth simply declares whichever it
+// wants driven. `amp` is the velocity-derived level; `ampScale` (default 1) is a SEPARATE
+// multiplier the amp curve drives, so an amp curve SCALES velocity rather than replacing
+// it. Keep this contract in sync with ~paramList in the state block below.
+SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
 	var ampEnv = EnvGen.kr(
 		Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]),
 		doneAction: 2
 	);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2); // \gate->0 = fast release
-	var sig = LPF.ar(Saw.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp;
+	var sig = LPF.ar(Saw.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
 // Sibling voices: same arg contract as \sawCue, so any track can be routed to any of
 // them via tracks.txt. Distinct waveforms only -- stand-ins, not realistic instruments.
-SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0|
+SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
 	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
-	var sig = LPF.ar(LPF.ar(Pulse.ar(freq, 0.35), freq * 6), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp;
+	var sig = LPF.ar(LPF.ar(Pulse.ar(freq, 0.35), freq * 6), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
-SynthDef(\sineCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0|
+SynthDef(\sineCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
 	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
-	var sig = LPF.ar(SinOsc.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp;
+	var sig = LPF.ar(SinOsc.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
-SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0|
+SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
 	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
-	var sig = LPF.ar(LFTri.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp;
+	var sig = LPF.ar(LFTri.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
@@ -71,7 +73,7 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 // used a GATED adsr with no `dur`, so notes sustained until the cue's group was
 // stopped -- here ampEnv runs for `dur` seconds and frees, killEnv keeps the
 // fast cue-stop fade.
-SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sharp=0.5, chaos=0, sat=0.3, pan=0|
+SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sharp=0.5, chaos=0, sat=0.3, pan=0, ampScale=1|
 	var atk     = sharp.linexp(0, 1, 0.4, 0.002);
 	var ampEnv  = EnvGen.kr(
 		Env([0, 1, 0.78, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, -2, -2]),
@@ -86,7 +88,17 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 	osc = (osc * drive).tanh / drive.sqrt;
 	osc = osc + (PinkNoise.ar(chaos * 0.3) * fenv);
 	osc = RLPF.ar(osc, cut, 0.2 + (chaos * 0.5));
-	Out.ar(out, Pan2.ar(osc * ampEnv * killEnv * amp, pan));
+	Out.ar(out, Pan2.ar(osc * ampEnv * killEnv * amp * ampScale, pan));
+}).add;
+
+// F3 continuous param control: a control-rate envelope writer. ~playCue plays one
+// per (cue, track, param) curve, writing the (tempo-warped) value onto a control
+// bus; note synths .map their matching control to that bus, so the param glides
+// continuously (and DURING held notes), not just sampled once at onset. No
+// doneAction -- it holds the env's final value until the cue's group is freed, so
+// notes that start after the curve ends read its held last value (like tempo).
+SynthDef(\paramBus, { |out = 0|
+	Out.kr(out, EnvGen.kr(\env.kr(Env.newClear(512))));
 }).add;
 
 
@@ -99,6 +111,7 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 ~cueIndex        = 0;                         // cursor: index of the cue ~next will play
 ~playing         = nil;                       // (routine:, group:, index:)
 ~pendingClears   = 0;                         // clear-board (48) visual notes in the playing cue not yet fired
+~clearChordDelta = 0.03;                      // s: a clear within this of a draw is "chorded" -> instant (no fade)
 ~tempoEnvs       = Dictionary.new;
 ~defaultTempoEnv = Env([120, 120], [1]);      // held at 120 BPM for the whole cue
 
@@ -114,26 +127,38 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 ~paramList   = [\cutoff, \pan, \amp, \chaos, \sharp];
 ~paramRanges = (cutoff: [20, 12000], pan: [-1, 1], amp: [0, 1], chaos: [0, 1], sharp: [0, 1]);   // y-axis range per param (editor)
 
-// Sample every param curve defined for (cue, track) -- plus the "*" all-tracks
-// curves -- at `beat`, returning a flat [\param, value, ...] arg list for Synth.
-// A track-specific curve OVERRIDES the "*" curve for the same param (so "*" is a
-// default a particular track can replace): we collect "*" values first, then let
-// the track's own curves overwrite them, so the result is order-independent.
-~paramArgsAt = { |cueName, track, beat|
-	var vals = IdentityDictionary.new;   // param -> sampled value
-	var args = [];
-	var sample = { |wantTrack|
-		~paramEnvs.keysValuesDo({ |k, env|
-			var p = k.split($\t);   // [cue, track, param]
-			if((p[0] == cueName) and: { p[1] == wantTrack }) {
-				vals[p[2].asSymbol] = env.at(beat.clip(0, env.duration));
-			};
-		});
-	};
-	sample.("*");                 // all-tracks defaults
-	sample.(track.asString);      // this track's curves override
-	vals.keysValuesDo({ |param, value| args = args ++ [param, value] });
-	args;
+// Every param curve defined for this cue, as [ (track:, param:, env:), ... ]
+// (track is "*" for an all-tracks curve, else the track-index string). ~playCue
+// turns each into a control bus + writer synth.
+~paramCurvesFor = { |cueName|
+	var out = [];
+	~paramEnvs.keysValuesDo({ |k, env|
+		var p = k.split($\t);   // [cue, track, param]
+		if(p[0] == cueName) {
+			out = out.add((track: p[1], param: p[2].asSymbol, env: env));
+		};
+	});
+	out;
+};
+
+// Render a param curve (value over window BEATS) into a time-domain Env (value
+// over SECONDS) by sampling it on a dense beat grid and warping each beat through
+// the cue's tempo map -- mirroring ~buildTimeMap, so the drawn shape is rendered
+// faithfully under whatever tempo curve is in force. The result is a plain \lin
+// Env feeding the \paramBus writer (capped to maxSegments, the writer's reserve).
+~warpParamEnv = { |env, map, maxSegments = 512|
+	var dur = env.duration;
+	if(dur <= 0) {
+		Env([env.at(0), env.at(0)], [0.01], [\lin])    // degenerate: flat one-point curve
+	} {
+		var res    = (dur / maxSegments).max(0.02);
+		var n      = (dur / res).ceil.asInteger.max(1);
+		var beats  = Array.fill(n + 1, { |i| (i * res).min(dur) });
+		var values = beats.collect({ |b| env.at(b) });
+		var times  = beats.collect({ |b| ~beatToTime.(map, b) });
+		var deltas = (1..n).collect({ |i| (times[i] - times[i - 1]).max(0) });
+		Env(values, deltas, \lin)
+	}
 };
 
 ~trackRoles        = Dictionary.new;          // track index -> (role: \audio|\visual, target: synthdef symbol or \board)
@@ -307,9 +332,12 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 ~stopCue = {
 	if(~playing.notNil) {
 		var g = ~playing[\group];
+		var buses = ~playing[\buses] ? [];
 		~playing[\routine].stop;
 		g.set(\gate, 0);                              // fade sounding voices, they self-free
-		SystemClock.sched(0.2, { g.free; nil });      // reap the (now empty) group
+		// reap the (now empty) group and free its param buses together, after the
+		// fade -- freeing buses earlier could recycle an index the writer still drives.
+		SystemClock.sched(0.2, { g.free; buses.do(_.free); nil });
 		~playing = nil;
 		// If the interrupted cue had a clear (48) signal -- one not yet fired, or
 		// one already fired and still mid-fade -- snap the board to cleared NOW
@@ -330,15 +358,20 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 		"playCue: no cue at index %".format(index).warn;
 	} {
 		var env, lastBeat, maxBeat, map, events, group, routine;
+		var paramCurves, paramBuses, mapsForTrack, trackMapCache;
 
 		~stopCue.value;
 
 		env = ~tempoEnvFor.(cue);
 
+		// F3 param curves of this cue (continuous control buses, built below).
+		paramCurves = ~paramCurvesFor.(cue[\name]);
+
 		lastBeat = if(cue[\notes].isEmpty) { 0 } {
 			cue[\notes].collect({ |nt| nt[\startBeat] + nt[\durBeats] }).maxItem
 		};
-		maxBeat = max(lastBeat, env.duration);
+		// Cover the tempo env AND every param curve, so warping holds, not clips, late values.
+		maxBeat = ([lastBeat, env.duration] ++ paramCurves.collect({ |pc| pc[\env].duration })).maxItem;
 		map = ~buildTimeMap.(env, maxBeat);
 
 		// Map each note's start/end beat through the integrated tempo curve, and
@@ -348,11 +381,34 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 			var t0   = ~beatToTime.(map, nt[\startBeat]);
 			var t1   = ~beatToTime.(map, nt[\startBeat] + nt[\durBeats]);
 			var role = ~trackRoleFor.(nt[\track]);
-			// onset sampling: bake this note's param-curve values at its start beat
-			var params = ~paramArgsAt.(cue[\name], nt[\track], nt[\startBeat]);
 			(time: t0, dur: (t1 - t0).max(0.01), midinote: nt[\midinote], vel: nt[\vel],
-				role: role[\role], target: role[\target], params: params)
-		}).sort({ |a, b| a[\time] < b[\time] });
+				track: nt[\track], role: role[\role], target: role[\target])
+		}).sort({ |a, b|
+			// time order; at equal time a clear (visual 48) sorts FIRST, so a clear
+			// chorded with a draw wipes the board before the new move is drawn.
+			if(a[\time] == b[\time]) {
+				var isClear = { |ev| (ev[\role] == \visual) and: { ev[\midinote] == (~boardClearPitch ? 48) } };
+				isClear.(a) and: { isClear.(b).not }
+			} {
+				a[\time] < b[\time]
+			};
+		});
+
+		// A clear (48) chorded with a draw -- another visual note at (nearly) the
+		// same time -- must clear INSTANTLY so the move lands on a fresh board; a
+		// lone clear still fades over its note length. Mark each such clear so the
+		// routine passes the board dur 0 instead of ev[\dur].
+		{
+			var clearPitch = (~boardClearPitch ? 48);
+			var drawTimes  = events.select({ |ev|
+				(ev[\role] == \visual) and: { ev[\midinote] != clearPitch }
+			}).collect(_[\time]);
+			events.do({ |ev|
+				if((ev[\role] == \visual) and: { ev[\midinote] == clearPitch }) {
+					ev[\instantClear] = drawTimes.any({ |dt| (dt - ev[\time]).abs <= ~clearChordDelta });
+				};
+			});
+		}.value;
 
 		// Count clear-board (48) visual notes so a premature stop/interrupt can
 		// finish the clear instantly (decremented as each one actually fires).
@@ -379,17 +435,47 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 
 		group = Group.new(s);
 
+		// F3 continuous params: one control bus + writer synth per (track, param)
+		// curve, keyed "track\tparam". Each writer plays the tempo-warped curve and
+		// holds its last value (no doneAction) until the group is freed.
+		paramBuses = Dictionary.new;
+		paramCurves.do({ |pc|
+			var bus    = Bus.control(s, 1);
+			var warped = ~warpParamEnv.(pc[\env], map);
+			paramBuses["%\t%".format(pc[\track], pc[\param])] = bus;
+			Synth(\paramBus, [\out, bus.index, \env, warped.asArray], group);
+		});
+
+		// For a note's track, the [\param, busIndex] maps to apply: a track-specific
+		// curve overrides the "*" (all-tracks) curve for the same param. Cached per track.
+		trackMapCache = IdentityDictionary.new;
+		mapsForTrack = { |tk|
+			trackMapCache[tk] ?? {
+				var list = [];
+				paramCurves.collect(_[\param]).as(Set).do({ |pm|
+					var b = paramBuses["%\t%".format(tk, pm)] ?? { paramBuses["*\t%".format(pm)] };
+					// the amp curve drives ampScale (a multiplier on velocity-amp), not amp itself
+					var ctl = if(pm == \amp) { \ampScale } { pm };
+					b !? { list = list.add([ctl, b.index]) };
+				});
+				trackMapCache[tk] = list;
+				list;
+			};
+		};
+
 		routine = Routine({
 			var now = 0;
 			events.do({ |ev|
 				(ev[\time] - now).wait;   // SystemClock => waits in seconds
 				now = ev[\time];
 				if(ev[\role] == \audio) {
-					Synth(ev[\target], [
+					var syn = Synth(ev[\target], [
 						\freq, ev[\midinote].midicps,
 						\amp,  ~masterAmp * (ev[\vel] / 127).squared,
 						\dur,  ev[\dur]
-					] ++ ev[\params], group);   // append F3 onset-sampled param values
+					], group);
+					// F3: map this track's param controls to their continuous buses.
+					mapsForTrack.(ev[\track]).do({ |m| syn.map(m[0], m[1]) });
 				} {
 					// F2 visualization: pitch -> board move. ~boardEvent defers to AppClock.
 					if(ev[\role] == \visual) {
@@ -398,30 +484,39 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 								ev[\midinote], ev[\vel], ev[\time]).postln;
 						};
 						if(~boardEvent.isNil) { "  [debug] ~boardEvent is nil -- boardGui.scd not loaded?".postln };
-						// ev[\dur] is the note's tempo-warped length in seconds; the board
-						// uses it as the fade-out time for a clear (pitch 48).
+						// ev[\dur] is the note's tempo-warped length, used by the board as
+						// a clear's fade-out time -- but a clear chorded with a draw
+						// (ev[\instantClear]) is passed dur 0 so it clears instantly and the
+						// move lands on a fresh board.
 						if(ev[\midinote] == (~boardClearPitch ? 48)) {
 							~pendingClears = (~pendingClears - 1).max(0);   // this clear is now firing
 						};
-						~boardEvent !? { ~boardEvent.(ev[\midinote], ev[\vel], ev[\dur]) };
+						~boardEvent !? {
+							var bdur = if(ev[\instantClear] == true) { 0 } { ev[\dur] };
+							~boardEvent.(ev[\midinote], ev[\vel], bdur);
+						};
 					};
 				};
 			});
-			// Reached only on NATURAL completion -- a manual stop/interrupt halts
-			// the routine first. Mark as stopped (so ~stop steps back next time) and
-			// reap the now-finished group after a short tail.
+			// Reached only on NATURAL completion -- a manual stop/interrupt halts the
+			// routine first. The cursor already advanced at play-start, so just mark
+			// stopped and reap the now-finished group after a short tail.
 			~playing = nil;
-			SystemClock.sched(1.0, { group.free; nil });
+			SystemClock.sched(1.0, { group.free; paramBuses.do(_.free); nil });
 		}).play(SystemClock);
 
-		~playing  = (routine: routine, group: group, index: index);
-		~cueIndex = (index + 1).min(~cues.size - 1);   // advance the cursor to the next cue
+		~playing  = (routine: routine, group: group, index: index, buses: paramBuses.values.asArray);
+		// Play-then-advance: the cursor moves forward as each cue STARTS, so tapping
+		// ~next/~play while a cue is still sounding cuts it off and moves to the NEXT
+		// cue. Only ~stop holds the cursor back (see ~stop).
+		~cueIndex = (index + 1).min(~cues.size - 1);
 		"playing cue [%] %  (%.2f s)".format(index, cue[\name], map.times.last).postln;
 	};
 };
 
 // ---------------------------------------------------------------------------
-// Play the cue at the cursor; ~playCue advances the cursor afterward.
+// Play the cue at the cursor; ~playCue advances the cursor (play-then-advance) as the
+// cue starts, so tapping this again mid-cue cuts it off and moves on to the next.
 // ---------------------------------------------------------------------------
 ~playNext = {
 	if(~cues.notEmpty) {
@@ -433,9 +528,11 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 // PERFORMER INTERFACE  (the names midi_cue_player.scd documents).
 //   ~play.(id)  cue NAME ("1", "big finish", ...) or, failing that, a 1-based
 //               cue number (matching the score; ~play.(1) is the first cue)
-//   ~next.()    advance + play the next cue
-//   ~stop.()    if sounding: fade out; if ALREADY stopped: step the cursor back
-//               one cue (no playback) so the next ~next replays the earlier cue
+//   ~next.()    play the cue at the cursor and advance; tapping it (or ~play) while a
+//               cue is still sounding cuts it off and moves on to the NEXT cue
+//   ~stop.()    if sounding: fade out and STAY on this cue (so the next ~play/~next
+//               restarts the same cue we stopped); if ALREADY stopped: step the
+//               cursor back one more cue (no playback) to re-cue an earlier one
 // ===========================================================================
 ~play = { |id|
 	var idx = ~cues.detectIndex({ |c| c[\name] == id.asString });
@@ -446,9 +543,11 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 
 ~stop = {
 	if(~playing.notNil) {
+		var idx = ~playing[\index];              // the cue we're cutting short
 		~stopCue.value;                          // sounding -> fade out
+		~cueIndex = idx;                          // ~stop does NOT advance: stay on this cue so ~next/~play replays it
 	} {
-		if(~cues.notEmpty) {                      // already stopped -> just rewind the cursor
+		if(~cues.notEmpty) {                      // already stopped -> step the cursor back one more cue
 			~cueIndex = (~cueIndex - 1).max(0);
 			"stepped back -- next cue is [%] %".format(~cueIndex, ~cues[~cueIndex][\name]).postln;
 		};

@@ -10,7 +10,8 @@
 # instrument parts; 4 is sparse. Adjust voices to taste. The visualization
 # track
 
-1  audio  sawCue
-2  audio  velvetSawCue
-3  audio  pulseCue
-5  visual board
+1  audio  sineCue
+2  audio  sawCue
+3  audio  velvetSawCue
+4  audio  pulseCue
+6  visual board
