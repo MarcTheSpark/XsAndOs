@@ -114,6 +114,7 @@ SynthDef(\paramBus, { |out = 0|
 ~clearChordDelta = 0.03;                      // s: a clear within this of a draw is "chorded" -> instant (no fade)
 ~tempoEnvs       = Dictionary.new;
 ~defaultTempoEnv = Env([120, 120], [1]);      // held at 120 BPM for the whole cue
+~tempoMul        = 1.0;                        // global tempo scale for PRACTICE (0.5 = half speed, 2 = double); takes effect next ~play
 
 // ---------------------------------------------------------------------------
 // F3 -- per-(cue, track, param) parameter curves. Keyed by a composite string
@@ -300,13 +301,16 @@ SynthDef(\paramBus, { |out = 0|
 
 // ---------------------------------------------------------------------------
 // Tempo integration: build a beat -> seconds lookup table.
-//   period(beat) = 60 / BPM(beat); time(beat) = cumulative trapezoid of period.
-//   Beyond the envelope's duration we hold the final BPM (clamp the query).
+//   period(beat) = 60 / (BPM(beat) * ~tempoMul); time(beat) = cumulative trapezoid.
+//   ~tempoMul is the global practice scale (1 = as written); it multiplies every BPM,
+//   so the whole map (notes AND param curves, which warp through it) speeds/slows
+//   together. Beyond the envelope's duration we hold the final BPM (clamp the query).
 // ---------------------------------------------------------------------------
 ~buildTimeMap = { |env, maxBeat, resolution = 0.01|
+	var mul     = (~tempoMul ? 1).max(0.01);
 	var n       = (maxBeat / resolution).ceil.asInteger.max(1);
 	var beats   = Array.fill(n + 1, { |i| i * resolution });
-	var periods = beats.collect({ |b| 60 / env.at(b.min(env.duration)) }); // sec per beat
+	var periods = beats.collect({ |b| 60 / (env.at(b.min(env.duration)) * mul) }); // sec per beat
 	var times   = Array.newClear(n + 1);
 	times[0] = 0;
 	(1..n).do({ |i|

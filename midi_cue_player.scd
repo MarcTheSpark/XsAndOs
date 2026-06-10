@@ -10,6 +10,10 @@
 // --- Curve editor: draw tempo (BPM) or per-(track, param) curves for each cue ---
 ~tempoGui.();
 
+// --- Practice tempo: scale ALL tempos (1 = as written, 0.5 = half speed). Next ~play. ---
+~tempoMul = 0.75;
+~tempoMul = 1;
+
 // --- Visualization: open the Xs-and-Os board (driven by any `visual board` track) ---
 ~boardGui.();              // default 500x500 board, windowed
 ~boardGui.(700@700);       // bigger fixed board (centered in the window)
