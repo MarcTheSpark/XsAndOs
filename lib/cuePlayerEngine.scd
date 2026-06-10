@@ -213,8 +213,15 @@ SynthDef(\paramBus, { |out = 0|
 ~midiDebugSeen = Set.new;     // paths already dumped (so we print each file only once)
 
 ~readCueNotes = { |path, startBeat = 0, endBeat = inf|
-	var m   = SimpleMIDIFile.read(path);  // default timeMode == \ticks
-	var div = m.division;                 // ticks per quarter note
+	var m, div;
+	// Guard: a missing .mid would make SimpleMIDIFile seek a never-opened handle
+	// and throw the cryptic "instance of _FilePos failed". Warn and skip instead.
+	if(File.exists(path).not) {
+		"readCueNotes: MIDI file not found, skipping: %".format(path).warn;
+		^[]
+	};
+	m   = SimpleMIDIFile.read(path);  // default timeMode == \ticks
+	div = m.division;                 // ticks per quarter note
 
 	// DEBUG: dump the RAW (un-windowed) first 20 notes of each track, once per file,
 	// so you can see exactly which pitches each track carries (e.g. find the board track).

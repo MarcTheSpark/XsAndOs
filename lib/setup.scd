@@ -8,16 +8,32 @@
 // Paths are resolved RELATIVE TO THIS FILE (lib/), and resolved up-front
 // (synchronously) so they still work inside the async waitForBoot callback.
 // Must stay ONE compilation unit (it is executeFile'd as a whole).
+//
+// data/ is the performer's working config and is NOT tracked by git (so they can
+// edit it freely). On a fresh clone it won't exist, so we seed it here from the
+// tracked data_original/ -- copying only missing files, never clobbering edits.
 // ============================================================================
 (
+var dataDir     = "../data".resolveRelative.standardizePath;
+var dataOrigDir = "../data_original".resolveRelative.standardizePath;
 var enginePath  = "cuePlayerEngine.scd".resolveRelative;
 var tempoGuiPath = "tempoEnvGui.scd".resolveRelative;
 var boardGuiPath = "boardGui.scd".resolveRelative;
-var tracksPath  = "../data/tracks.txt".resolveRelative;
-var cuesPath    = "../data/cues.txt".resolveRelative;
-var temposPath  = "../data/tempos.txt".resolveRelative;
-var midiMapPath = "../data/midi_map.txt".resolveRelative;
+var tracksPath  = dataDir +/+ "tracks.txt";
+var cuesPath    = dataDir +/+ "cues.txt";
+var temposPath  = dataDir +/+ "tempos.txt";
+var midiMapPath = dataDir +/+ "midi_map.txt";
 var midiDir     = "../midi".resolveRelative;
+
+// Seed data/ from data_original/ (fresh clone), without overwriting existing files.
+if(File.exists(dataDir).not) { File.mkdir(dataDir) };
+(dataOrigDir +/+ "*").pathMatch.do({ |src|
+	var dst = dataDir +/+ src.basename;
+	if(File.exists(dst).not) {
+		File.use(dst, "w", { |f| f.write(File.readAllString(src)) });
+		"setup: seeded data/% from data_original/".format(src.basename).postln;
+	};
+});
 
 s.waitForBoot({
 	this.executeFile(enginePath);                 // the engine (~play/~next/~stop, synths, ...)

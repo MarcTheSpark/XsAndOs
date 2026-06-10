@@ -1,6 +1,14 @@
-# MIDI cue source files (binary, managed outside git)
+# Performer's working config -- untracked so they can edit it (MIDI bindings,
+# tempo tweaks) without git-pull conflicts. lib/setup.scd seeds it from the
+# tracked data_original/ on a fresh clone. Edit data_original/ to ship updates.
+data/
+
+# MIDI cue source files (binary, managed outside git) -- but the runtime cue
+# source MUST ship so the cellist's git pull can actually play (else the cue
+# sheet points at a missing file and SimpleMIDIFile throws "_FilePos failed").
 *.mid
 *.midi
+!midi/MIDICues.mid
 
 # Python bytecode
 __pycache__/
