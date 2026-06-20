@@ -91,6 +91,67 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 	Out.ar(out, Pan2.ar(osc * ampEnv * killEnv * amp * ampScale, pan));
 }).add;
 
+
+~makeSawStack = {
+	|freq, chaos, gain|
+	Splay.ar(
+		Pulse.ar(
+			[freq * 0.5, freq, freq * 1.5] * LFNoise2.kr(200, mul: chaos * 0.25, add: 1),
+			mul: 0.2
+		),
+		0.3 + (0.6 * chaos), center: LFNoise2.kr(90, mul: chaos)
+	) * gain;
+};
+~makeLorenzSinStack = {
+	|lorenzRate, lorenzDepth, lorenzFreq, n=3|
+	Mix(
+		n.collect({|i|
+			var freq = lorenzFreq * (i + 1);
+			var sine = SinOsc.ar(
+				LorenzL.ar([lorenzRate, lorenzRate * 1.01], mul:lorenzDepth, add:freq),
+				mul:0.1
+			);
+			sine * (freq < (SampleRate.ir * 0.45)) * (1 / (i+1).pow(0.5));
+		})
+	);
+
+};
+~filterStack = { |src, filterFreq, chaos, sat|
+	var bw      = chaos.linexp(0, 1, 0.05, 8);
+	var resonz  = Resonz.ar(src, filterFreq, bw);
+	XFade2.ar(src, resonz, 1 - sat);
+};
+~makeWhistle = { |freq, chaos, sat|
+	var wiggleConstant = LFNoise2.kr(200, mul: chaos * 0.25, add: 1);
+	Resonz.ar(WhiteNoise.ar, freq * wiggleConstant, 0.08);
+};
+~makeFilterFreq = { |freq, sharp, sat, gate|
+	var fenv            = EnvGen.kr(Env.perc(0.001, 0.2 + (sharp.linexp(0, 1, 0.4, 0.004) * 3)), gate);
+	var baseFilterFreq  = freq * (1 + (sat * 2));
+	var filterEnvAmount = (0.5 + (sharp * 6)) * sat;
+	(baseFilterFreq * (1 + (fenv * filterEnvAmount))).clip(40, 18000);
+};
+SynthDef(\lorenzCue, {
+	|out=0, freq=440, amp=0.2, gate=1, sharp=0.5, chaos=0, sat=0.3, rel=0.8, pan=0|
+	var attack = sharp.linexp(0, 1, 0.4, 0.004);
+	var drive = 1 + (sat * 8);
+	var dynamicEnv = EnvGen.kr(Env.adsr(attack, 0.3, 1.0, rel), gate, doneAction: 2);
+	var chaosEnv = EnvGen.kr(Env.perc(attack/3, chaos/2, chaos/2)) + (chaos / 3);
+	var lorenzDepth = chaosEnv * 500, lorenzRate = 5000;
+	var lorenzFreq = freq;
+	var filterFreq  = ~makeFilterFreq.(freq, sharp, sat, gate);
+	var sawStack = ~makeSawStack.(freq, chaosEnv, sat * 3);
+	var lorenzSin = ~makeLorenzSinStack.(lorenzRate, lorenzDepth, lorenzFreq);
+	var whistle = ~makeWhistle.(freq, chaosEnv, sat * 3);
+	var sig = sawStack + lorenzSin + whistle;
+	sig = (~filterStack.(sig, lorenzFreq, chaosEnv, sat) + ~filterStack.(sig, filterFreq, chaosEnv, sat)) / 2;
+	sig = sig * dynamicEnv * amp;
+	sig = (sig * drive).tanh / drive.sqrt;
+	sig = sig * sat.linexp(0, 1, 10, 0.7);
+	Out.ar(out, Balance2.ar(sig[0], sig[1], pan));
+}).add;
+
+
 // F3 continuous param control: a control-rate envelope writer. ~playCue plays one
 // per (cue, track, param) curve, writing the (tempo-warped) value onto a control
 // bus; note synths .map their matching control to that bus, so the param glides

@@ -10,6 +10,15 @@ data/
 *.midi
 !midi/MIDICues.mid
 
+# Audio media (sound files used while experimenting -- large binaries, not
+# part of the runtime; kept locally only).
+*.wav
+*.flac
+*.aif
+*.aiff
+*.mp3
+*.ogg
+
 # Python bytecode
 __pycache__/
 *.pyc
