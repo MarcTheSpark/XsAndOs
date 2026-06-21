@@ -24,7 +24,9 @@
 (
 // ---------------------------------------------------------------------------
 // Saw stand-in voice.
-//   - ampEnv gives the note its computed duration and self-frees (doneAction 2).
+//   - ampEnv holds for the note's full `dur`, THEN releases over `rel` (total
+//     life dur + rel) and self-frees (doneAction 2). The release tail therefore
+//     rings PAST `dur` into the next note (natural; can thicken dense passages).
 //   - killEnv is a sustained gate at 1.0; \gate->0 fades it out fast so playCue
 //     can interrupt the previous cue without a click.
 //   - velocity -> amp is squared (roughly perceptual).
@@ -37,7 +39,7 @@
 // it. Keep this contract in sync with ~paramList in the state block below.
 SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
 	var ampEnv = EnvGen.kr(
-		Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]),
+		Env([0, 1, 1, 0], [atk, (dur - atk).max(0.001), rel], [\sin, \lin, \sin]),
 		doneAction: 2
 	);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2); // \gate->0 = fast release
@@ -48,21 +50,21 @@ SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 // Sibling voices: same arg contract as \sawCue, so any track can be routed to any of
 // them via tracks.txt. Distinct waveforms only -- stand-ins, not realistic instruments.
 SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
-	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
+	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
 	var sig = LPF.ar(LPF.ar(Pulse.ar(freq, 0.35), freq * 6), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
 SynthDef(\sineCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
-	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
+	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
 	var sig = LPF.ar(SinOsc.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
 SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
-	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
+	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
 	var sig = LPF.ar(LFTri.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
@@ -71,12 +73,12 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 // Same arg contract as the siblings (note dur baked into a timed ampEnv that
 // self-frees) PLUS velvet's own sharp/chaos/sat controls. The earlier version
 // used a GATED adsr with no `dur`, so notes sustained until the cue's group was
-// stopped -- here ampEnv runs for `dur` seconds and frees, killEnv keeps the
-// fast cue-stop fade.
+// stopped -- here ampEnv holds for `dur` then releases over `rel` and frees,
+// killEnv keeps the fast cue-stop fade.
 SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sharp=0.5, chaos=0, sat=0.3, pan=0, ampScale=1|
 	var atk     = sharp.linexp(0, 1, 0.4, 0.002);
 	var ampEnv  = EnvGen.kr(
-		Env([0, 1, 0.78, 0], [atk, (dur - atk - rel).max(0.001), rel], [\sin, -2, -2]),
+		Env([0, 1, 0.78, 0], [atk, (dur - atk).max(0.001), rel], [\sin, -2, -2]),
 		doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
 	var jit   = LFNoise2.kr(8 + (chaos * 24)) * (chaos * 0.08);
@@ -135,15 +137,15 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 // self-frees) PLUS its own sharp/chaos/sat controls. It previously used a GATED
 // adsr (sustain 1.0) with no `dur`, so notes never honored their length and rang
 // until the cue's group stopped -- and its long `rel` release was then chopped by
-// ~stopCue's 0.2 s group reap (the documented \velvetSawCue bug). Now ampEnv runs
-// for `dur` seconds (carrying attack + the long musical release) and self-frees;
-// killEnv is the separate fast cue-stop fade.
+// ~stopCue's 0.2 s group reap (the documented \velvetSawCue bug). Now ampEnv
+// holds for the full `dur` then releases over `rel` and self-frees; killEnv is
+// the separate fast cue-stop fade.
 SynthDef(\lorenzCue, {
 	|out=0, freq=440, amp=0.2, dur=1, gate=1, sharp=0.5, chaos=0, sat=0.3, rel=0.8, pan=0, ampScale=1|
 	var attack = sharp.linexp(0, 1, 0.4, 0.004);
 	var drive = 1 + (sat * 8);
 	var dynamicEnv = EnvGen.kr(
-		Env([0, 1, 1, 0], [attack, (dur - attack - rel).max(0.001), rel], [\sin, \lin, -2]),
+		Env([0, 1, 1, 0], [attack, (dur - attack).max(0.001), rel], [\sin, \lin, -2]),
 		doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2); // \gate->0 = fast cue-stop fade
 	var chaosEnv = EnvGen.kr(Env.perc(attack/3, chaos/2, chaos/2)) + (chaos / 3);
