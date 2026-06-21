@@ -131,11 +131,21 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 	var filterEnvAmount = (0.5 + (sharp * 6)) * sat;
 	(baseFilterFreq * (1 + (fenv * filterEnvAmount))).clip(40, 18000);
 };
+// Same arg contract as the siblings (note dur baked into a timed ampEnv that
+// self-frees) PLUS its own sharp/chaos/sat controls. It previously used a GATED
+// adsr (sustain 1.0) with no `dur`, so notes never honored their length and rang
+// until the cue's group stopped -- and its long `rel` release was then chopped by
+// ~stopCue's 0.2 s group reap (the documented \velvetSawCue bug). Now ampEnv runs
+// for `dur` seconds (carrying attack + the long musical release) and self-frees;
+// killEnv is the separate fast cue-stop fade.
 SynthDef(\lorenzCue, {
-	|out=0, freq=440, amp=0.2, gate=1, sharp=0.5, chaos=0, sat=0.3, rel=0.8, pan=0|
+	|out=0, freq=440, amp=0.2, dur=1, gate=1, sharp=0.5, chaos=0, sat=0.3, rel=0.8, pan=0, ampScale=1|
 	var attack = sharp.linexp(0, 1, 0.4, 0.004);
 	var drive = 1 + (sat * 8);
-	var dynamicEnv = EnvGen.kr(Env.adsr(attack, 0.3, 1.0, rel), gate, doneAction: 2);
+	var dynamicEnv = EnvGen.kr(
+		Env([0, 1, 1, 0], [attack, (dur - attack - rel).max(0.001), rel], [\sin, \lin, -2]),
+		doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2); // \gate->0 = fast cue-stop fade
 	var chaosEnv = EnvGen.kr(Env.perc(attack/3, chaos/2, chaos/2)) + (chaos / 3);
 	var lorenzDepth = chaosEnv * 500, lorenzRate = 5000;
 	var lorenzFreq = freq;
@@ -145,7 +155,7 @@ SynthDef(\lorenzCue, {
 	var whistle = ~makeWhistle.(freq, chaosEnv, sat * 3);
 	var sig = sawStack + lorenzSin + whistle;
 	sig = (~filterStack.(sig, lorenzFreq, chaosEnv, sat) + ~filterStack.(sig, filterFreq, chaosEnv, sat)) / 2;
-	sig = sig * dynamicEnv * amp;
+	sig = sig * dynamicEnv * killEnv * amp * ampScale;
 	sig = (sig * drive).tanh / drive.sqrt;
 	sig = sig * sat.linexp(0, 1, 10, 0.7);
 	Out.ar(out, Balance2.ar(sig[0], sig[1], pan));
@@ -186,8 +196,8 @@ SynthDef(\paramBus, { |out = 0|
 // ---------------------------------------------------------------------------
 ~paramEnvs   = Dictionary.new;
 ~paramKey    = { |cue, track, param| "%\t%\t%".format(cue, track, param) };
-~paramList   = [\cutoff, \pan, \amp, \chaos, \sharp];
-~paramRanges = (cutoff: [20, 12000], pan: [-1, 1], amp: [0, 1], chaos: [0, 1], sharp: [0, 1]);   // y-axis range per param (editor)
+~paramList   = [\cutoff, \pan, \amp, \chaos, \sharp, \sat, \rel];
+~paramRanges = (cutoff: [20, 12000], pan: [-1, 1], amp: [0, 1], chaos: [0, 1], sharp: [0, 1], sat: [0, 1], rel: [0.05, 6]);   // y-axis range per param (editor)
 
 // Every param curve defined for this cue, as [ (track:, param:, env:), ... ]
 // (track is "*" for an all-tracks curve, else the track-index string). ~playCue
