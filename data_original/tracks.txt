@@ -13,5 +13,5 @@
 1  audio  sineCue
 2  audio  sawCue
 3  audio  velvetSawCue
-4  audio  pulseCue
+# 4  audio  pulseCue
 6  visual board

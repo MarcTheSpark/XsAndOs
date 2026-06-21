@@ -249,15 +249,18 @@
 	~boardView = UserView().background_(Color.black).canFocus_(true);
 	~boardView.drawFunc = { |v| ~boardRender.(v.bounds) };
 	// Keys: 'f' enters fullscreen; Escape leaves fullscreen if we're in it, else closes.
-	~boardView.keyDownAction = { |view, char, mods, unicode|
+	~boardView.keyDownAction = { |view, char, mods, unicode, keycode, key|
 		case
-			{ char == $f } {
-				if(~boardFullScreen != true) { ~boardWin.fullScreen; ~boardFullScreen = true };
-			}
-			{ unicode == 27 } {
-				if(~boardFullScreen == true) { ~boardWin.endFullScreen; ~boardFullScreen = false; ~boardWin.front }
-				{ ~boardWin.close };
-			};
+		{ char == $f } {
+			if(~boardFullScreen != true) { ~boardWin.fullScreen; ~boardFullScreen = true };
+		}
+		{ unicode == 27 } {
+			if(~boardFullScreen == true) { ~boardWin.endFullScreen; ~boardFullScreen = false; ~boardWin.front }
+			{ ~boardWin.close };
+		}
+		{ key == 32 } {
+			~next.();
+		};
 	};
 	~boardWin = Window("Xs and Os", Rect(320, 200, ~boardSize.x + 80, ~boardSize.y + 80))
 		.background_(Color.black);

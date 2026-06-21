@@ -1,41 +1,76 @@
 # curves:  name | track | param | bpm/value levels | beat durations | curves
-#   tempo curves GENERATED from the Reaper master tempo by reaper/rpp_extract.py
-#   to use: copy this into data/tempos.txt -- doing so REPLACES any hand-drawn
-#   tempo and F3 param curves there, so merge by hand if you want to keep them.
-1 | * | tempo | 72 72 72 | 3.2386 0 | hold hold
-2 | * | tempo | 72 72 | 1.994 | hold
-3 | * | tempo | 72 72 | 2.0059 | hold
-4 | * | tempo | 72 72 | 2.0001 | hold
-5 | * | tempo | 72 72 72 | 5 0 | hold lin
-6 | * | tempo | 72 78.6041 | 3.0003 | lin
-7 | * | tempo | 78.6041 85.196 | 2.9948 | lin
-8 | * | tempo | 85.196 89.6089 72 72 | 2.0049 1 0 | lin hold hold
-9 | * | tempo | 72 79.2179 89.1443 | 5 0.9982 | hold lin
-10 | * | tempo | 89.1443 109.0503 112.2154 | 2.0018 0.9998 | lin lin
-11 | * | tempo | 112.2154 121.7117 | 2.9997 | lin
-12 | * | tempo | 121.7117 131.2092 | 3.0001 | lin
-13 | * | tempo | 131.2092 137.5419 123.3931 | 2.0004 1 | lin lin
-14 | * | tempo | 123.3931 80.9479 60 60 | 3 4 1 | lin hold hold
-15 | * | tempo | 60 60 | 6 | hold
-16 | * | tempo | 60 100 101.3802 | 5 1 | hold lin
-17 | * | tempo | 101.3802 105.5209 | 3 | lin
-18 | * | tempo | 105.5209 109.6615 | 3 | lin
-19 | * | tempo | 109.6615 112.422 | 2 | lin
-20 | * | tempo | 112.422 115.1824 | 2 | lin
-21 | * | tempo | 115.1824 117.9428 | 2 | lin
-22 | * | tempo | 117.9428 123.4637 94.6369 94.6369 | 4 2 1 | lin lin hold
-23 | * | tempo | 94.6369 56 56 | 3 0 | hold lin
-24 | * | tempo | 56 59.3365 93.4597 60 60 | 11 13 1 0 | lin lin hold hold
-25 | * | tempo | 60 60 120.7583 69.0047 69.0047 | 15.2829 10.4677 0.7446 0.004 | hold lin lin hold
-26 | * | tempo | 69.0047 106 111.6588 112 112.4549 | 0.0008 40.5 1.1603 0.8678 | hold lin hold lin
-27 | * | tempo | 112.4549 130 128.75 138.75 139.482 | 33.4714 14.5005 17.7841 13.2151 | lin hold lin lin
-28 | * | tempo | 139.482 140 87.5 87.5 | 9.3516 4.9711 0.8519 | lin hold hold
-29 | * | tempo | 87.5 87.5 | 9.1497 | hold
-30 | * | tempo | 87.5 87.5 | 4.5379 | hold
-31 | * | tempo | 87.5 87.5 | 8.9986 | hold
+#   param 'tempo' (track '*') = the cue's tempo curve; others = (cue, track, param)
 32 | * | tempo | 87.5 73.75 73.75 | 3.1558 1.048 | hold hold
+21 | * | tempo | 115.1824 117.9428 | 2.0 | lin
 33 | * | tempo | 73.75 73.75 | 3.9765 | hold
-34 | * | tempo | 73.75 56.25 56.25 | 2.9797 0.9694 | hold hold
+7 | * | tempo | 78.6041 85.196 | 2.9948 | lin
+26 | * | tempo | 69.0047 106.0 111.6588 112.0 112.4549 | 0.0008 40.5 1.1603 0.8678 | hold lin hold lin
+18 | * | tempo | 105.5209 109.6615 | 3.0 | lin
+16 | * | tempo | 60.0 100.0 101.3802 | 5.0 1.0 | hold lin
+27 | * | tempo | 112.4549 130.0 128.75 138.75 139.482 | 33.4714 14.5005 17.7841 13.2151 | lin hold lin lin
+20 | * | tempo | 112.422 115.1824 | 2.0 | lin
+10 | * | tempo | 89.1443 109.0503 112.2154 | 2.0018 0.9998 | lin lin
+31 | * | tempo | 87.5 87.5 | 8.9986 | hold
 35 | * | tempo | 56.25 57.25 51.25 47.5 52.5 52.5 48.75 48.75 | 7.4592 1.5176 0.9841 0.9725 2.5601 0.6664 1.9338 | hold lin hold lin lin lin hold
+11 | * | tempo | 112.22 121.71 | 3.0 | lin
+29 | * | tempo | 87.5 87.5 | 9.1497 | hold
+12 | * | tempo | 121.7117 131.2092 | 3.0001 | lin
+15 | * | tempo | 60.0 60.0 | 6.0 | hold
+19 | * | tempo | 109.6615 112.422 | 2.0 | lin
+2 | * | tempo | 72.0 72.0 | 1.99 | hold
+17 | * | tempo | 101.38 105.52 | 3.0 | lin
+1 | * | tempo | 72.0 72.0 72.0 | 3.24 0.0 | hold hold
+30 | * | tempo | 87.5 87.5 | 4.5379 | hold
+25 | * | tempo | 60.0 60.0 120.7583 69.0047 69.0047 | 15.2829 10.4677 0.7446 0.004 | hold lin lin hold
+28 | * | tempo | 139.482 140.0 87.5 87.5 | 9.3516 4.9711 0.8519 | lin hold hold
+14 | * | tempo | 123.39 80.95 60.0 60.0 | 3.0 4.0 1.0 | lin hold hold
+24 | * | tempo | 56.0 59.3365 93.4597 60.0 60.0 | 11.0 13.0 1.0 0.0 | lin lin hold hold
+22 | * | tempo | 117.9428 123.4637 94.6369 94.6369 | 4.0 2.0 1.0 | lin lin hold
+13 | * | tempo | 131.2092 137.5419 123.3931 | 2.0004 1.0 | lin lin
+23 | * | tempo | 94.6369 56.0 56.0 | 3.0 0.0 | hold lin
+6 | * | tempo | 72.0 78.6 | 3.0 | lin
+3 | * | tempo | 72.0 72.0 | 2.0059 | hold
 36 | * | tempo | 48.75 48.75 | 6.9895 | hold
+9 | * | tempo | 72.0 79.2179 89.1443 | 5.0 0.9982 | hold lin
+8 | * | tempo | 85.2 89.61 72.0 72.0 | 2.0 1.0 0.0 | lin hold hold
+4 | * | tempo | 72.0 72.0 | 2.0001 | hold
+34 | * | tempo | 73.75 56.25 56.25 | 2.9797 0.9694 | hold hold
 37 | * | tempo | 48.75 48.75 | 5.4185 | hold
+5 | * | tempo | 72.0 72.0 72.0 | 5.0 0.0 | hold lin
+14 | * | chaos | 0.0 0.01 | 8.0 | lin
+14 | 3 | sat | 0.3 0.3 | 8.0 | lin
+24 | 3 | chaos | 0.1 0.23 0.67 | 19.43 5.57 | lin lin
+14 | 3 | amp | 1.0 1.0 1.0 | 4.0 4.0 | lin lin
+24 | 3 | amp | 0.5 0.5 | 25.0 | lin
+18 | 3 | chaos | 0.0 0.23 0.0 | 2.09 0.91 | lin lin
+15 | 3 | chaos | 0.0 0.39 0.15 0.0 | 4.17 0.41 1.42 | lin lin lin
+16 | 3 | sat | 0.3 0.3 | 6.0 | lin
+24 | * | rel | 0.27 0.95 | 25.0 | lin
+1 | 3 | sat | 0.3 0.3 | 3.24 | lin
+14 | 3 | rel | 0.3 0.47 0.05 | 4.17 3.83 | lin lin
+19 | 3 | chaos | 0.0 0.0 | 2.0 | lin
+18 | 3 | sat | 0.3 0.3 | 3.0 | lin
+14 | 3 | chaos | 0.0 0.35 0.03 0.0 | 4.07 0.68 3.25 | lin lin lin
+14 | 5 | rel | 0.05 0.05 | 8.0 | lin
+20 | 3 | chaos | 0.0 0.0 | 2.0 | lin
+15 | 3 | sat | 0.3 0.3 | 6.0 | lin
+22 | 3 | sat | 0.3 0.3 | 7.0 | lin
+17 | * | amp | 1.0 1.0 | 3.0 | lin
+15 | 3 | amp | 0.5 0.51 0.1 0.03 | 4.13 0.61 1.26 | lin lin lin
+18 | 3 | sharp | 0.5 0.87 0.45 | 2.08 0.92 | lin lin
+14 | * | cutoff | 20000.0 20000.0 | 8.0 | lin
+23 | 3 | sat | 0.3 0.3 | 3.0 | lin
+14 | * | amp | 1.0 1.0 | 8.0 | lin
+24 | * | sharp | 0.64 0.89 | 25.0 | lin
+1 | * | sat | 0.0 0.0 | 3.24 | lin
+22 | 3 | chaos | 0.16 0.0 | 7.0 | lin
+24 | * | sat | 0.04 0.5 | 25.0 | lin
+17 | 3 | sat | 0.3 0.53 0.01 | 2.07 0.93 | lin lin
+24 | 3 | sat | 0.0 0.08 | 25.0 | lin
+21 | 3 | chaos | 0.0 0.0 | 2.0 | lin
+15 | 3 | rel | 0.3 0.3 | 6.0 | lin
+14 | * | rel | 0.05 0.05 | 8.0 | lin
+24 | * | chaos | 0.13 0.58 | 25.0 | lin
+14 | * | sharp | 0.0 1.0 | 8.0 | lin
+14 | 4 | rel | 0.06 0.06 | 8.0 | lin
+17 | 3 | chaos | 0.0 0.46 0.0 | 2.04 0.96 | lin lin

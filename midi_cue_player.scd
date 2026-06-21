@@ -45,3 +45,4 @@ MarcUtilities.setOutputLimiter(1, 0.5);
 // --- Inspection ------------------------------------------------------------
 ~fileTracks.();           // tracks in the cursor cue's whole MIDI file
 ~cueTracks.();            // tracks in the cursor cue's windowed notes
+
