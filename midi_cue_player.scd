@@ -11,7 +11,7 @@
 
 // --- SETUP: evaluate this one line once. Wait for "Ready." -------------------
 this.executeFile("lib/setup.scd".resolveRelative);
-
+MarcUtilities.setOutputLimiter(1, 0.5);
 
 // --- Play ------------------------------------------------------------------
 ~play.("1");   // play cue named "1"  (interrupts whatever is sounding)
@@ -27,6 +27,9 @@ this.executeFile("lib/setup.scd".resolveRelative);
 
 // --- Curve editor: draw tempo (BPM) or per-(track, param) curves for each cue ---
 ~tempoGui.();
+
+// --- Synth tester: audition the cue voices listed in tracks.txt (play/hold a note) ---
+~synthGui.();
 
 // --- Visualization: open the Xs-and-Os board (driven by any `visual board` track) ---
 ~boardGui.();                          // default 800x800 board, windowed

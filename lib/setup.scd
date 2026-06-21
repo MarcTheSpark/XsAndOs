@@ -19,6 +19,7 @@ var dataOrigDir = "../data_original".resolveRelative.standardizePath;
 var enginePath  = "cuePlayerEngine.scd".resolveRelative;
 var tempoGuiPath = "tempoEnvGui.scd".resolveRelative;
 var boardGuiPath = "boardGui.scd".resolveRelative;
+var synthTesterPath = "synthTesterGui.scd".resolveRelative;
 var tracksPath  = dataDir +/+ "tracks.txt";
 var cuesPath    = dataDir +/+ "cues.txt";
 var temposPath  = dataDir +/+ "tempos.txt";
@@ -39,6 +40,7 @@ s.waitForBoot({
 	this.executeFile(enginePath);                 // the engine (~play/~next/~stop, synths, ...)
 	this.executeFile(tempoGuiPath);               // ~tempoGui curve editor
 	this.executeFile(boardGuiPath);               // ~boardGui visualization board
+	this.executeFile(synthTesterPath);            // ~synthGui voice tester
 
 	~trackMapPath = tracksPath;
 	~loadTrackMap.(tracksPath);                   // track -> synth/role map (load before cues)
