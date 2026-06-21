@@ -689,6 +689,15 @@ SynthDef(\paramBus, { |out = 0|
 	};
 };
 
+// Step the cursor by `delta` cues WITHOUT playing (clamped to the cue range),
+// announcing the new position. Drives the board's left/right arrow keys.
+~shiftCue = { |delta|
+	if(~cues.notEmpty) {
+		~cueIndex = (~cueIndex + delta).clip(0, ~cues.size - 1);
+		~announceCue.value;
+	};
+};
+
 ~stop = {
 	if(~playing.notNil) {
 		var idx = ~playing[\index];              // the cue we're cutting short

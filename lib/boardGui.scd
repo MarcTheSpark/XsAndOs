@@ -260,6 +260,13 @@
 		}
 		{ key == 32 } {
 			~next.();
+		}
+		// arrow keys shift the cursor without playing (Qt::Key_Left / _Right)
+		{ key == 16777234 } {
+			~shiftCue.(-1);
+		}
+		{ key == 16777236 } {
+			~shiftCue.(1);
 		};
 	};
 	~boardWin = Window("Xs and Os", Rect(320, 200, ~boardSize.x + 80, ~boardSize.y + 80))
