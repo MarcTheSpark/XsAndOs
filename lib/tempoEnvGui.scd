@@ -266,6 +266,8 @@
 			var cue = ~cues.detect({ |c| c[\name] == currentName });
 			var notes = (cue !? (_[\notes])) ? [];
 			var minP, maxP, pr, laneH;
+			// never show `visual board` tracks (F2 board control notes, not pitches)
+			notes = notes.reject({ |n| (~trackRoleFor.(n[\track]) ? ())[\role] == \visual });
 			if((curParam != \tempo) and: { curTrack != "*" }) {
 				notes = notes.select({ |n| n[\track].asString == curTrack });
 			};
