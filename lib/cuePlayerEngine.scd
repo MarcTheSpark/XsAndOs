@@ -638,7 +638,7 @@ SynthDef(\paramBus, { |out = 0|
 		// ~next/~play while a cue is still sounding cuts it off and moves to the NEXT
 		// cue. Only ~stop holds the cursor back (see ~stop).
 		~cueIndex = (index + 1).min(~cues.size - 1);
-		"playing cue [%] %  (%.2f s)".format(index, cue[\name], map.times.last).postln;
+		"playing cue %".format(index + 1).postln;
 	};
 };
 
@@ -703,10 +703,11 @@ SynthDef(\paramBus, { |out = 0|
 		var idx = ~playing[\index];              // the cue we're cutting short
 		~stopCue.value;                          // sounding -> fade out
 		~cueIndex = idx;                          // ~stop does NOT advance: stay on this cue so ~next/~play replays it
+		~announceCue.value;
 	} {
 		if(~cues.notEmpty) {                      // already stopped -> step the cursor back one more cue
 			~cueIndex = (~cueIndex - 1).max(0);
-			"stepped back -- next cue is [%] %".format(~cueIndex, ~cues[~cueIndex][\name]).postln;
+			~announceCue.value;
 		};
 	};
 };
