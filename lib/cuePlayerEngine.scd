@@ -76,7 +76,7 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 // whose cutoff gets a sharp-scaled percussive bump; `chaos` wiggles the pitch.
 // ampEnv holds for `dur` then releases over `rel` and frees (so the note honors
 // its length); killEnv keeps the fast cue-stop fade.
-SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sharp=0.5, chaos=0, sat=0.3, pan=0, ampScale=1|
+SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sharp=0.5, chaos=0, sat=0.3, pan=0, ampScale=0.5|
 	var atk     = sharp.linexp(0, 1, 0.4, 0.002);
 	var ampEnv  = EnvGen.kr(
 		Env([0, 1, 0.78, 0], [atk, (dur - atk).max(0.001), rel], [\sin, -2, -2]),
