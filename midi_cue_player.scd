@@ -21,6 +21,9 @@ MarcUtilities.setOutputLimiter(1, 0.5);
 
 ~cues.do({ |c, i| "[%] %".format(i + 1, c[\name]).postln });   // list cues (1-based)
 
+// --- Per-cue volume: a fixed amplitude multiplier (1 = as written). Persists to levels.txt. ---
+~setCueVolume.(7, 0.5);   // cue 7 at half volume
+
 // --- Practice tempo: scale ALL tempos (1 = as written, 0.5 = half). Next ~play. ---
 ~tempoMul = 0.75;
 ~tempoMul = 1;

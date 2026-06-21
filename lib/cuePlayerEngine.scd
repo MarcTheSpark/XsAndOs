@@ -192,6 +192,13 @@ SynthDef(\paramBus, { |out = 0|
 ~defaultTempoEnv = Env([120, 120], [1]);      // held at 120 BPM for the whole cue
 ~tempoMul        = 1.0;                        // global tempo scale for PRACTICE (0.5 = half speed, 2 = double); takes effect next ~play
 
+// Per-cue volume level: a fixed amplitude multiplier on top of the velocity-amp
+// and any amp curve. Keyed by 1-based cue number (matching the score / ~play).
+// Loaded from levels.txt; missing cues default to 1.0 (~cueVolumeFor).
+~cueLevels    = Dictionary.new;
+~cueLevelPath = nil;                           // default levels config path (SETUP sets this)
+~cueVolumeFor = { |index| ~cueLevels[index + 1] ? 1.0 };   // index is 0-based; cue numbers are 1-based
+
 // ---------------------------------------------------------------------------
 // F3 -- per-(cue, track, param) parameter curves. Keyed by a composite string
 // "cue\ttrack\tparam" -> Env of the param value over (window) BEATS. track "*"
@@ -592,7 +599,7 @@ SynthDef(\paramBus, { |out = 0|
 				if(ev[\role] == \audio) {
 					var syn = Synth(ev[\target], [
 						\freq, ev[\midinote].midicps,
-						\amp,  ~masterAmp * (ev[\vel] / 127).squared,
+						\amp,  ~masterAmp * (ev[\vel] / 127).squared * ~cueVolumeFor.(index),
 						\dur,  ev[\dur]
 					], group);
 					// F3: map this track's param controls to their continuous buses.
@@ -824,6 +831,47 @@ SynthDef(\paramBus, { |out = 0|
 		});
 		"loaded % MIDI binding(s) from %".format(~midiMap.size, p).postln;
 	};
+};
+
+// ===========================================================================
+// CUE VOLUME LEVELS  --  a per-cue amplitude multiplier, persisted to levels.txt
+// as plain text, one binding per line:  `cueNum amplitude` (cueNum 1-based, to
+// match ~play / the score). Missing cues default to 1.0 (~cueVolumeFor). This is
+// applied ON TOP of the velocity-amp and any amp curve, in ~playCue.
+//   ~setCueVolume.(7, 0.5)   set cue 7 to half volume AND persist to levels.txt
+// ===========================================================================
+~loadCueLevels = { |path|
+	var p = path.standardizePath;
+	if(File.exists(p)) {
+		~cueLevels = Dictionary.new;
+		File.readAllString(p).split($\n).do({ |line|
+			var t = line.stripWhiteSpace;
+			if(t.notEmpty and: { t[0] != $# }) {
+				var tok = t.split($ ).reject(_.isEmpty);
+				if(tok.size >= 2) {
+					~cueLevels[tok[0].asInteger] = tok[1].asFloat;
+				} {
+					"loadCueLevels: skipping malformed line: %".format(line).warn;
+				};
+			};
+		});
+		"loaded % cue volume level(s) from %".format(~cueLevels.size, p).postln;
+	};
+};
+
+~saveCueLevels = { |path|
+	var p = path.standardizePath, f = File(p, "w");
+	f.write("# cue volume levels -- one per line:  cueNum amplitude  (cueNum 1-based)\n");
+	~cueLevels.keys.asArray.sort.do({ |k| f.write("% %\n".format(k, ~cueLevels[k])) });
+	f.close;
+	"saved % cue volume level(s) to %".format(~cueLevels.size, p).postln;
+};
+
+// Set one cue's volume (1-based cue number) and persist to ~cueLevelPath (if set).
+~setCueVolume = { |cueNum, amplitude|
+	~cueLevels[cueNum.asInteger] = amplitude.asFloat;
+	"cue % volume set to %".format(cueNum, amplitude).postln;
+	~cueLevelPath !? { |p| ~saveCueLevels.(p) };
 };
 
 // ===========================================================================

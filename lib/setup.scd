@@ -23,6 +23,7 @@ var synthTesterPath = "synthTesterGui.scd".resolveRelative;
 var tracksPath  = dataDir +/+ "tracks.txt";
 var cuesPath    = dataDir +/+ "cues.txt";
 var temposPath  = dataDir +/+ "tempos.txt";
+var levelsPath  = dataDir +/+ "levels.txt";
 var midiMapPath = dataDir +/+ "midi_map.txt";
 var midiDir     = "../midi".resolveRelative;
 
@@ -50,6 +51,9 @@ s.waitForBoot({
 
 	~tempoEnvPath = temposPath;
 	~loadTempoEnvs.(temposPath);                  // drawn tempo/param curves
+
+	~cueLevelPath = levelsPath;
+	~loadCueLevels.(levelsPath);                  // per-cue volume levels
 
 	~midiMapPath = midiMapPath;
 	~setupMIDI.value;                             // open MIDI in + load saved bindings
