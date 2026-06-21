@@ -25,14 +25,39 @@
 //   \pluckChaos  Karplus-Strong PLUCKED string (sat = brightness/drive, chaos = ring mod)
 //   \bowString   BOWED synth-strings ensemble (detuned saws + body filter + vibrato)
 // ============================================================================
+
+MarcUtilities.setOutputLimiter(1, 0.5)
+{}.play
+{BPF.ar(PinkNoise.ar,1000, 0.001) * 5}.play
 (
 s = s ? Server.default;
 s.waitForBoot({
 
+	~wigFreq = {
+		|freq, chaos|
+		var wiggleConstant = LFNoise2.kr(chaos.linexp(0, 1, 50, 300), mul: chaos * 0.25, add: 1);
+		freq * wiggleConstant;
+	};
 	// ------------------------------------------------------------------ defs
 	// 1) Subtractive: morph sine->saw with `sat`, drive into tanh, resonant LPF
 	//    whose cutoff gets a percussive bump scaled by `sharp`.
 	SynthDef(\velvetSaw, { |out=0, freq=220, amp=0.2, gate=1, sharp=0.5, chaos=0, sat=0.3, rel=0.8, pan=0|
+		var atk   = sharp.linexp(0, 1, 0.4, 0.002);
+		var env   = EnvGen.kr(Env.adsr(atk, 0.25, 0.78, rel, curve: -2), gate, doneAction: 2);
+		var fenv  = EnvGen.kr(Env.perc(0.001, 0.2 + (atk * 3)), gate);
+		var wiggleConstant = LFNoise2.kr(chaos.linexp(0, 1, 50, 300), mul: chaos * 0.25, add: 1);
+		var f     = [~wigFreq.(freq, chaos), ~wigFreq.(freq, chaos)];
+		var whistle = Ringz.ar(PinkNoise.ar ! 2, f, 1/(0.2 + (fenv / 5))) * 0.1;// * sat.linexp(0, 1, 3, 0.7);
+		var sig   = XFade2.ar(whistle, Saw.ar(f), sat.linlin(0, 1, -1, 1));
+		var drive = 1 + (sat.pow(2) * 8);
+		var cut   = (freq * (2 + (sat * 8)) * (1 + (fenv * (0.5 + (sharp * 6))))).clip(40, 18000);
+		sig = (sig * drive).tanh / drive.sqrt;
+		sig = RLPF.ar(sig, cut, 0.2);// + (chaos * 0.5));
+		sig = sig * env * amp;
+		Out.ar(out, Balance2.ar(sig[0], sig[1], pan));
+	}).add;
+
+	SynthDef(\velvetSawOriginal, { |out=0, freq=220, amp=0.2, gate=1, sharp=0.5, chaos=0, sat=0.3, rel=0.8, pan=0|
 		var atk   = sharp.linexp(0, 1, 0.4, 0.002);
 		var env   = EnvGen.kr(Env.adsr(atk, 0.25, 0.78, rel, curve: -2), gate, doneAction: 2);
 		var f     = LFNoise2.kr(200, env * chaos * 30, add: freq);// * LFNoise2.ar(201, 0.01, 1.0);
@@ -207,7 +232,7 @@ s.waitForBoot({
 	s.sync;
 
 	// --------------------------------------------------------------- lab state
-	~synthOptionDefs = [\marc, \velvetSaw, \fmGlass, \gendyStream, \breathFlute, \shaperVox, \pluckChaos, \bowString];
+	~synthOptionDefs = [\velvetSaw, \marc, \fmGlass, \gendyStream, \breathFlute, \shaperVox, \pluckChaos, \bowString];
 	~synthLabCurrent = ~synthOptionDefs[0];
 	~synthLabState   = (freq: 220, amp: 0.2, sharp: 0.5, chaos: 0.0, sat: 0.3, rel: 0.8, pan: 0);
 	~synthLabKeys    = [\freq, \amp, \sharp, \chaos, \sat, \rel, \pan];
