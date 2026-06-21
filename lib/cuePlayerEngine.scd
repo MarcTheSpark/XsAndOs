@@ -199,7 +199,7 @@ SynthDef(\paramBus, { |out = 0|
 ~paramEnvs   = Dictionary.new;
 ~paramKey    = { |cue, track, param| "%\t%\t%".format(cue, track, param) };
 ~paramList   = [\cutoff, \pan, \amp, \chaos, \sharp, \sat, \rel];
-~paramRanges = (cutoff: [20, 12000], pan: [-1, 1], amp: [0, 1], chaos: [0, 1], sharp: [0, 1], sat: [0, 1], rel: [0.05, 6]);   // y-axis range per param (editor)
+~paramRanges = (cutoff: [20, 20000], pan: [-1, 1], amp: [0, 1], chaos: [0, 1], sharp: [0, 1], sat: [0, 1], rel: [0.05, 6]);   // y-axis range per param (editor); each must contain the synth's default for that control
 
 // Every param curve defined for this cue, as [ (track:, param:, env:), ... ]
 // (track is "*" for an all-tracks curve, else the track-index string). ~playCue
@@ -213,6 +213,40 @@ SynthDef(\paramBus, { |out = 0|
 		};
 	});
 	out;
+};
+
+// The SynthDef control a param actually drives: the amp curve scales velocity via
+// the separate `ampScale` control; every other param drives the like-named control.
+~paramControlName = { |param| if(param == \amp) { \ampScale } { param.asSymbol } };
+
+// Introspect a SynthDef's declared default for a control, via its SynthDesc (added
+// to SynthDescLib.global by `.add`). nil if the synth or control is unknown.
+~synthControlDefault = { |synthName, control|
+	var desc = SynthDescLib.global.at(synthName);
+	desc !? {
+		desc.controls.detect({ |c| c.name == control }) !? (_.defaultValue);
+	};
+};
+
+// The value a freshly-created (track, param) curve should sit at: the declared
+// default of the control the param drives, on the synth that track routes to. For
+// track "*" (or an unmapped/ambiguous track), scan the cue's audio synths and take
+// the first that declares the control; falls back to the param's range low.
+~paramCurveDefault = { |cueName, track, param|
+	var control = ~paramControlName.(param);
+	var synthNames;
+	if(track == "*") {
+		var cue = ~cues.detect({ |c| c[\name] == cueName });
+		synthNames = (cue ? (notes: [])) [\notes].collect(_[\track]).as(Set).asArray
+			.collect({ |t| ~trackRoles[t] })
+			.select({ |r| r.notNil and: { r[\role] == \audio } })
+			.collect({ |r| r[\target] });
+	} {
+		var r = ~trackRoles[track.asInteger];
+		synthNames = if(r.notNil and: { r[\role] == \audio }) { [r[\target]] } { [] };
+	};
+	synthNames.collect({ |sn| ~synthControlDefault.(sn, control) }).detect(_.notNil)
+		?? { (~paramRanges[param] ? [0])[0] };
 };
 
 // Render a param curve (value over window BEATS) into a time-domain Env (value
@@ -539,7 +573,7 @@ SynthDef(\paramBus, { |out = 0|
 				paramCurves.collect(_[\param]).as(Set).do({ |pm|
 					var b = paramBuses["%\t%".format(tk, pm)] ?? { paramBuses["*\t%".format(pm)] };
 					// the amp curve drives ampScale (a multiplier on velocity-amp), not amp itself
-					var ctl = if(pm == \amp) { \ampScale } { pm };
+					var ctl = ~paramControlName.(pm);
 					b !? { list = list.add([ctl, b.index]) };
 				});
 				trackMapCache[tk] = list;

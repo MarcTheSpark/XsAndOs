@@ -77,9 +77,12 @@
 		{ ~paramEnvs[~paramKey.(currentName, curTrack, curParam)] };
 	};
 	yFloor = { if(curParam == \tempo) { 1 } { ~paramRanges[curParam][0] } };
+	// A brand-new curve sits flat on the synth's declared default for this control
+	// (introspected from the track's SynthDef), so an untouched param curve is a
+	// no-op vs. not drawing one. Tempo has no synth default, so it starts at 120.
 	defaultModel = {
 		var v = if(curParam == \tempo) { 120 }
-		        { switch(curParam, \cutoff, { 8000 }, \pan, { 0 }, \amp, { 0.5 }, { 0 }) };
+		        { ~paramCurveDefault.(currentName, curTrack, curParam) };
 		(beats: [0, cueLen], bpms: [v, v], curves: [\lin]);
 	};
 
