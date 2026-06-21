@@ -55,7 +55,7 @@
 };
 
 ~openTempoEnvGui = {
-	var win, env, cueMenu, trackMenu, paramMenu, curveMenu, curveNumBox, addBtn, remBtn, audBtn, saveBtn, info;
+	var win, env, graph, cueMenu, trackMenu, paramMenu, curveMenu, curveNumBox, addBtn, remBtn, audBtn, saveBtn, info;
 	var minBpmBox, maxBpmBox, yLabel;
 	var minBPM = 40, maxBPM = 240, cueLen = 16;
 	var currentName, model, names, updating = false;
@@ -128,6 +128,7 @@
 			env.refresh;
 			updating = false;
 			updateInfo.value;
+			graph !? (_.refresh);          // repaint the note backdrop for the loaded cue/track
 		};
 
 		// view -> model (after a drag), pin endpoints in x, store into ~tempoEnvs
@@ -254,11 +255,50 @@
 		info   = StaticText().string_("");
 		yLabel = StaticText().string_("BPM").align_(\center);
 
-		env = EnvelopeView()
+		// Background piano-roll: the cue's MIDI notes as faint grey bars, painted on a
+		// UserView UNDERNEATH a transparent EnvelopeView so the curve floats over them.
+		// x = beat (note start..end over the cue length); y = pitch (high at top). For
+		// the combined track "*" (or tempo, which is track-agnostic) every note is drawn;
+		// otherwise only the selected track's notes.
+		graph = UserView().background_(Color.grey(0.92));
+		graph.drawFunc = { |uv|
+			var w = uv.bounds.width, h = uv.bounds.height;
+			var cue = ~cues.detect({ |c| c[\name] == currentName });
+			var notes = (cue !? (_[\notes])) ? [];
+			var minP, maxP, pr, laneH;
+			if((curParam != \tempo) and: { curTrack != "*" }) {
+				notes = notes.select({ |n| n[\track].asString == curTrack });
+			};
+			if(notes.notEmpty and: { cueLen > 0 }) {
+				minP  = notes.collect(_[\midinote]).minItem;
+				maxP  = notes.collect(_[\midinote]).maxItem;
+				pr    = (maxP - minP).max(1);
+				laneH = h / (pr + 1);
+				Pen.fillColor = Color.grey(0.45, 0.5);
+				notes.do({ |n|
+					var x0 = (n[\startBeat] / cueLen) * w;
+					var x1 = ((n[\startBeat] + n[\durBeats]) / cueLen) * w;
+					var y  = (maxP - n[\midinote]) * laneH;
+					Pen.fillRect(Rect(x0, y, (x1 - x0).max(1.5), (laneH * 0.8).clip(2, 14)));
+				});
+			};
+		};
+
+		// Transparent so the grey notes behind show through; explicit colors keep the
+		// curve/nodes visible on the light backdrop.
+		env = EnvelopeView(graph, Rect(0, 0, 400, 300))
 			.keepHorizontalOrder_(true)
 			.step_(0.0)
 			.drawLines_(true).drawRects_(true)
+			.background_(Color.clear)
+			.colors_(Color.black, Color.grey(0.25))
 			.action_({ readView.value; syncCurveMenu.value });
+
+		// Keep the envelope filling the graph as the window resizes, and repaint notes.
+		graph.onResize = {
+			env.bounds_(Rect(0, 0, graph.bounds.width, graph.bounds.height));
+			graph.refresh;
+		};
 
 		win = Window("Curve Editor  (x = beats, y = tempo / param)", Rect(200, 200, 680, 470));
 		win.layout_(VLayout(
@@ -266,7 +306,7 @@
 			HLayout( StaticText().string_("track:").maxWidth_(38), trackMenu,
 				StaticText().string_("param:").maxWidth_(44), paramMenu, nil ),
 			HLayout(
-				env,
+				graph,
 				View().fixedWidth_(64).layout_(
 					VLayout( yLabel, maxBpmBox, nil, minBpmBox )
 				)
@@ -281,6 +321,9 @@
 		loadCue.value(names[0]);
 		cueMenu.value_(0);
 		syncCurveMenu.value;
+		// Size the envelope to fill the graph once the window has laid out (onResize
+		// also handles this on later resizes), then paint the initial backdrop.
+		{ env.bounds_(Rect(0, 0, graph.bounds.width, graph.bounds.height)); graph.refresh }.defer(0.1);
 		win
 	};
 };
