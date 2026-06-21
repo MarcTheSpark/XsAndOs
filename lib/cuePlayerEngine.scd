@@ -158,7 +158,7 @@ SynthDef(\lorenzCue, {
 	var sig = sawStack + lorenzSin + whistle;
 	sig = (~filterStack.(sig, lorenzFreq, chaosEnv, sat) + ~filterStack.(sig, filterFreq, chaosEnv, sat)) / 2;
 	sig = sig * dynamicEnv * killEnv * amp * ampScale;
-	sig = (sig * drive).tanh / drive.sqrt;
+	//sig = (sig * drive).tanh / drive.sqrt;
 	sig = sig * sat.linexp(0, 1, 10, 0.7);
 	Out.ar(out, Balance2.ar(sig[0], sig[1], pan));
 }).add;

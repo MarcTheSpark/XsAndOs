@@ -103,8 +103,7 @@ s.waitForBoot({
 		|out=0, freq=440, amp=0.2, gate=1, sharp=0.5, chaos=0, sat=0.3, rel=0.8, pan=0|
 		var attack = sharp.linexp(0, 1, 0.4, 0.004);
 		var drive = 1 + (sat * 8);
-		var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
-		var dynamicEnv = EnvGen.kr(Env.adsr(attack, 0.3, 1.0, rel), gate);
+		var dynamicEnv = EnvGen.kr(Env.adsr(attack, 0.3, 1.0, rel), gate, doneAction: 2);
 		var chaosEnv = EnvGen.kr(Env.perc(attack/3, chaos/2, chaos/2)) + (chaos / 3);
 		var lorenzDepth = chaosEnv * 500, lorenzRate = 5000;
 		var lorenzFreq = freq;
@@ -114,7 +113,7 @@ s.waitForBoot({
 		var whistle = ~makeWhistle.(freq, chaosEnv, sat * 3);
 		var sig = sawStack + lorenzSin + whistle;
 		sig = (~filterStack.(sig, lorenzFreq, chaosEnv, sat) + ~filterStack.(sig, filterFreq, chaosEnv, sat)) / 2;
-		sig = sig * dynamicEnv * amp * killEnv;
+		sig = sig * dynamicEnv * amp;
 		sig = (sig * drive).tanh / drive.sqrt;
 		sig = sig * sat.linexp(0, 1, 10, 0.7);
 		Out.ar(out, Balance2.ar(sig[0], sig[1], pan));
