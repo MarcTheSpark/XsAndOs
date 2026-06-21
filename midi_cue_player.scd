@@ -18,6 +18,7 @@ MarcUtilities.setOutputLimiter(1, 0.5);
 ~play.(1);     // play the 1st cue by number (1-based, matching the score)
 ~next.();      // advance to / play the next cue (tap again mid-cue to skip on)
 ~stop.();      // stop; press again while stopped to rewind the cursor one cue
+~goToCue.(7);  // move the cursor to cue 7 WITHOUT playing (next ~next/~play starts there)
 
 ~cues.do({ |c, i| "[%] %".format(i + 1, c[\name]).postln });   // list cues (1-based)
 

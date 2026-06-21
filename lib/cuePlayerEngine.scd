@@ -652,6 +652,13 @@ SynthDef(\paramBus, { |out = 0|
 	};
 };
 
+// Print where the cursor now sits ("on cue 7"). Called whenever the cursor moves
+// without playing (~goToCue, ~stop step-back, arrow-key shifts). Cue numbers are
+// 1-based to match the score / ~play.
+~announceCue = {
+	~cues[~cueIndex] !? { "on cue %".format(~cueIndex + 1).postln };
+};
+
 // ===========================================================================
 // PERFORMER INTERFACE  (the names midi_cue_player.scd documents).
 //   ~play.(id)  cue NAME ("1", "big finish", ...) or, failing that, a 1-based
@@ -668,6 +675,19 @@ SynthDef(\paramBus, { |out = 0|
 };
 
 ~next = ~playNext;
+
+// Move the cursor to a cue WITHOUT playing it (so the next ~next/~play starts
+// there). `id` is a cue NAME or, failing a name match, a 1-based cue number --
+// same resolution as ~play.
+~goToCue = { |id|
+	var idx = ~cues.detectIndex({ |c| c[\name] == id.asString }) ?? { id.asInteger - 1 };
+	if(idx.isNil or: { idx < 0 } or: { idx >= ~cues.size }) {
+		"goToCue: no cue for %".format(id).warn;
+	} {
+		~cueIndex = idx;
+		~announceCue.value;
+	};
+};
 
 ~stop = {
 	if(~playing.notNil) {
