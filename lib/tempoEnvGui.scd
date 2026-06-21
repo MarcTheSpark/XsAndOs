@@ -16,7 +16,16 @@
 // Must stay ONE compilation unit (it is executeFile'd as a whole).
 // ============================================================================
 (
-~tgCurveTypes = [\lin, \exp, \sin, \wel, \sqr, \cub, \hold, \step];
+// Only curve shapes the EnvelopeView (QCurve) can render -- NOT \hold, which the
+// audio Env accepts but QCurve does not (it throws in env.curves_, breaking the
+// whole editor). \step is QCurve's hold-like shape.
+~tgCurveTypes = [\lin, \exp, \sin, \wel, \sqr, \cub, \step];
+
+// QCurve's accepted symbols; anything else (a stray \hold from an old tempos.txt,
+// etc.) is shown as \lin so feeding it to the view never crashes refresh.
+~tgViewCurveNames = Set[\step, \linear, \lin, \sine, \sin, \welch, \wel,
+	\exponential, \exp, \squared, \sqr, \cubed, \cub];
+~tgViewCurve = { |c| if(c.isNumber or: { ~tgViewCurveNames.includes(c) }) { c } { \lin } };
 
 // A cue's length in beats = its window length, or its last note end for whole-file cues.
 ~cueBeatLength = { |cue|
@@ -124,7 +133,7 @@
 			var ys = model[\bpms].collect({ |v| ((v - minBPM) / (maxBPM - minBPM)).clip(0, 1) });
 			updating = true;
 			env.value_([xs, ys]);
-			env.curves_(model[\curves]);
+			env.curves_(model[\curves].collect(~tgViewCurve));   // view-safe (no \hold, etc.)
 			env.refresh;
 			updating = false;
 			updateInfo.value;
