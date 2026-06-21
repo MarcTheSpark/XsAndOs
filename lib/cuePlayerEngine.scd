@@ -71,26 +71,29 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 }).add;
 
 // Same arg contract as the siblings (note dur baked into a timed ampEnv that
-// self-frees) PLUS velvet's own sharp/chaos/sat controls. The earlier version
-// used a GATED adsr with no `dur`, so notes sustained until the cue's group was
-// stopped -- here ampEnv holds for `dur` then releases over `rel` and frees,
-// killEnv keeps the fast cue-stop fade.
+// self-frees) PLUS velvet's own sharp/chaos/sat controls. `sat` morphs a stereo
+// Ringz/PinkNoise "whistle" toward a Saw, driven into tanh and a resonant LPF
+// whose cutoff gets a sharp-scaled percussive bump; `chaos` wiggles the pitch.
+// ampEnv holds for `dur` then releases over `rel` and frees (so the note honors
+// its length); killEnv keeps the fast cue-stop fade.
 SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sharp=0.5, chaos=0, sat=0.3, pan=0, ampScale=1|
 	var atk     = sharp.linexp(0, 1, 0.4, 0.002);
 	var ampEnv  = EnvGen.kr(
 		Env([0, 1, 0.78, 0], [atk, (dur - atk).max(0.001), rel], [\sin, -2, -2]),
 		doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
-	var jit   = LFNoise2.kr(8 + (chaos * 24)) * (chaos * 0.08);
-	var f     = freq * (1 + jit);
-	var osc   = XFade2.ar(SinOsc.ar(f), Saw.ar(f), sat.linlin(0, 1, -1, 1));
-	var drive = 1 + (sat * 8);
-	var fenv  = EnvGen.kr(Env.perc(0.001, 0.2 + (atk * 3)), gate);
-	var cut   = (freq * (2 + (sat * 8)) * (1 + (fenv * (0.5 + (sharp * 6))))).clip(40, 18000);
-	osc = (osc * drive).tanh / drive.sqrt;
-	osc = osc + (PinkNoise.ar(chaos * 0.3) * fenv);
-	osc = RLPF.ar(osc, cut, 0.2 + (chaos * 0.5));
-	Out.ar(out, Pan2.ar(osc * ampEnv * killEnv * amp * ampScale, pan));
+	var fenv    = EnvGen.kr(Env.perc(0.001, 0.2 + (atk * 3)), gate);
+	// chaos-driven freq wiggle, evaluated twice for a decorrelated stereo pair
+	var wig     = { LFNoise2.kr(chaos.linexp(0, 1, 50, 300), mul: chaos * 0.25, add: 1) };
+	var f       = [freq * wig.value, freq * wig.value];
+	var whistle = Ringz.ar(PinkNoise.ar ! 2, f, 1 / (0.2 + (fenv / 5))) * 0.1;
+	var sig     = XFade2.ar(whistle, Saw.ar(f), sat.linlin(0, 1, -1, 1));
+	var drive   = 1 + (sat.pow(2) * 8);
+	var cut     = (freq * (2 + (sat * 8)) * (1 + (fenv * (0.5 + (sharp * 6))))).clip(40, 18000);
+	sig = (sig * drive).tanh / drive.sqrt;
+	sig = RLPF.ar(sig, cut, 0.2);
+	sig = sig * ampEnv * killEnv * amp * ampScale;
+	Out.ar(out, Balance2.ar(sig[0], sig[1], pan));
 }).add;
 
 
