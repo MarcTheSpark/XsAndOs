@@ -302,6 +302,45 @@
 			graph.refresh;
 		};
 
+		// Ctrl-click to ADD a node at the pointer; Shift-click to REMOVE the nearest one.
+		// (Plain click/drag still moves nodes via EnvelopeView's native handling -- the
+		// QtCollider event filter delivers these clicks to mouseDownAction regardless.)
+		// Endpoints are never added past or removed -- they stay pinned to 0..cueLen.
+		env.toolTip_("Ctrl-click: add node    Shift-click: remove node    drag: move");
+		env.mouseDownAction = { |view, x, y, mods, button|
+			var w = view.bounds.width, h = view.bounds.height;
+			var beat = (x / w).clip(0, 1) * cueLen;                       // pixel -> beats
+			var val  = minBPM + ((1 - (y / h)).clip(0, 1) * (maxBPM - minBPM));   // pixel -> y value
+			var isShift = (mods & 0x02000000) != 0, isCtrl = (mods & 0x04000000) != 0;
+			if((button == 0) and: { isCtrl || isShift }) {
+				var b = model[\beats], v = model[\bpms], c = model[\curves];
+				if(isCtrl) {                                              // add an interior node
+					var i  = (b.detectIndex({ |bb| bb > beat }) ? (b.size - 1)).clip(1, b.size - 1);
+					var ci = i - 1;
+					model[\beats]  = b[..i-1] ++ [beat.clip(0.001, cueLen - 0.001).round(0.01)] ++ b[i..];
+					model[\bpms]   = v[..i-1] ++ [val.round(0.01)] ++ v[i..];
+					model[\curves] = c[..ci-1] ++ [c[ci]] ++ c[ci..];     // split segment, keep its curve
+				} {                                                       // remove nearest interior node
+					if(b.size > 2) {
+						var best, bestD = 0.08;                           // within ~8% of the view (x & y)
+						(1 .. b.size - 2).do({ |k|
+							var d = ((b[k] - beat) / cueLen).hypot((v[k] - val) / (maxBPM - minBPM));
+							if(d < bestD) { bestD = d; best = k };
+						});
+						best !? { |idx|
+							var ci = idx - 1;
+							model[\beats]  = b[..idx-1] ++ b[idx+1..];
+							model[\bpms]   = v[..idx-1] ++ v[idx+1..];
+							model[\curves] = c[..ci-1] ++ c[ci+1..];
+						};
+					};
+				};
+				storeEnv.(~tgModelToEnv.(model, yFloor.value));
+				refresh.value;
+				syncCurveMenu.value;
+			};
+		};
+
 		win = Window("Curve Editor  (x = beats, y = tempo / param)", Rect(200, 200, 680, 470));
 		win.layout_(VLayout(
 			HLayout( StaticText().string_("cue:").maxWidth_(28), cueMenu, nil, audBtn, saveBtn ),
