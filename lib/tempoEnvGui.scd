@@ -68,7 +68,7 @@
 	var minBpmBox, maxBpmBox, yLabel;
 	var minBPM = 40, maxBPM = 240, cueLen = 16;
 	var currentName, model, names, updating = false;
-	var curParam = \tempo, curTrack = "*", trackItems, paramItems;
+	var curParam = \tempo, curTrack = "*", trackKeys, trackLabels, paramItems;
 	var refresh, readView, loadCue, updateInfo, syncCurveMenu;
 	var storeEnv, getEnv, yFloor, defaultModel;
 
@@ -95,10 +95,13 @@
 		(beats: [0, cueLen], bpms: [v, v], curves: [\lin]);
 	};
 
-	// track menu lists every track index actually present in the cues, plus "*";
-	// param menu is tempo + the engine's ~paramList.
-	trackItems = ["*"] ++ ~cues.collect({ |c| c[\notes].collect(_[\track]) })
-		.flatten.as(Set).asArray.sort.collect(_.asString);
+	// track menu lists only the AUDIO tracks declared in tracks.txt, shown by their
+	// name (4th column, falling back to the index), plus "*" (= all tracks). trackKeys
+	// holds the underlying value ("*" or the index string) used to key ~paramEnvs;
+	// trackLabels is what the menu displays. param menu is tempo + the engine's ~paramList.
+	trackKeys = ["*"] ++ ~trackRoles.keys.asArray.select({ |t| ~trackRoles[t][\role] == \audio })
+		.sort.collect(_.asString);
+	trackLabels = ["all"] ++ trackKeys[1..].collect({ |t| ~trackName.(t.asInteger) });
 	paramItems = ["tempo"] ++ ~paramList.collect(_.asString);
 
 	if(names.isEmpty) {
@@ -189,9 +192,9 @@
 
 		// track selector -- which track's param curve to edit ("*" = all tracks).
 		// Disabled while editing \tempo (tempo is per-cue, one timeline, track-agnostic).
-		trackMenu = PopUpMenu().items_(trackItems).action_({ |m|
+		trackMenu = PopUpMenu().items_(trackLabels).action_({ |m|
 			readView.value;
-			curTrack = trackItems[m.value];
+			curTrack = trackKeys[m.value];
 			loadCue.value(currentName);
 			syncCurveMenu.value;
 		});

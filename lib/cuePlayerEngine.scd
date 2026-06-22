@@ -299,8 +299,10 @@ SynthDef(\paramBus, { |out = 0|
 	~trackRoles[track];
 };
 
-// Load tracks.txt:  one line  `track  role  target`  (e.g. `1 audio pulseCue`,
-// `4 visual board`). '#' comments and blank lines ignored. Global to the piece.
+// Load tracks.txt:  one line  `track  role  target  [name...]`  (e.g.
+// `1 audio pulseCue Bass`, `6 visual board`). The optional 4th+ tokens are a
+// human-readable track name (may contain spaces) shown in the curve editor's
+// track menu. '#' comments and blank lines ignored. Global to the piece.
 ~loadTrackMap = { |path|
 	var p = path.standardizePath;
 	if(File.exists(p)) {
@@ -310,7 +312,8 @@ SynthDef(\paramBus, { |out = 0|
 			if(t.notEmpty and: { t[0] != $# }) {
 				var tok = t.split($ ).reject(_.isEmpty);
 				if(tok.size >= 3) {
-					~trackRoles[tok[0].asInteger] = (role: tok[1].asSymbol, target: tok[2].asSymbol);
+					~trackRoles[tok[0].asInteger] = (role: tok[1].asSymbol, target: tok[2].asSymbol,
+						name: if(tok.size > 3) { tok[3..].join(" ") } { nil });
 				} {
 					"loadTrackMap: skipping malformed line: %".format(line).warn;
 				};
@@ -319,6 +322,10 @@ SynthDef(\paramBus, { |out = 0|
 		"loaded % track mapping(s) from %".format(~trackRoles.size, p).postln;
 	};
 };
+
+// A track's display name from tracks.txt (4th column), falling back to its index
+// as a string when none was given.
+~trackName = { |track| (~trackRoles[track] !? (_[\name])) ?? { track.asString } };
 
 // ---------------------------------------------------------------------------
 // Read notes from one MIDI file, windowed to [startBeat, endBeat). Onset must
