@@ -167,6 +167,21 @@ SynthDef(\lorenzCue, {
 }).add;
 
 
+// Sample-playback voice: a one-shot metronome click. Plays sounds/metroblock.wav
+// for notes BELOW A440 and sounds/metropling.wav for notes AT/ABOVE A440, chosen
+// from `freq` at trigger time. Unlike the synth voices it ignores `dur` -- it just
+// plays the whole sample once and self-frees (PlayBuf doneAction 2). killEnv keeps
+// the fast cue-stop fade. blockBuf/plingBuf are the loaded buffers, passed by
+// ~playCue (see ~metroBlockBuf / ~metroPlingBuf below). Both samples are stereo.
+SynthDef(\metroCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, gate = 1, pan = 0, ampScale = 1, blockBuf = 0, plingBuf = 0|
+	var buf     = Select.kr(freq < 440, [plingBuf, blockBuf]);   // below A440 -> block, else pling
+	var sig     = PlayBuf.ar(2, buf, BufRateScale.kr(buf), doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);   // \gate->0 = fast cue-stop fade
+	sig = sig * killEnv * amp * ampScale;
+	Out.ar(out, Balance2.ar(sig[0], sig[1], pan.clip(-1, 1)));
+}).add;
+
+
 // F3 continuous param control: a control-rate envelope writer. ~playCue plays one
 // per (cue, track, param) curve, writing the (tempo-warped) value onto a control
 // bus; note synths .map their matching control to that bus, so the param glides
@@ -176,6 +191,12 @@ SynthDef(\lorenzCue, {
 SynthDef(\paramBus, { |out = 0|
 	Out.kr(out, EnvGen.kr(\env.kr(Env.newClear(512))));
 }).add;
+
+// Sample buffers for \metroCue (loaded once, here, since the engine is executeFile'd
+// only after the server has booted). ~playCue passes these to each \metroCue note.
+// Paths resolve relative to lib/ (this file). Stereo files.
+~metroBlockBuf = Buffer.read(s, "sounds/metroblock.wav".resolveRelative);
+~metroPlingBuf = Buffer.read(s, "sounds/metropling.wav".resolveRelative);
 
 
 // ---------------------------------------------------------------------------
@@ -604,11 +625,17 @@ SynthDef(\paramBus, { |out = 0|
 				(ev[\time] - now).wait;   // SystemClock => waits in seconds
 				now = ev[\time];
 				if(ev[\role] == \audio) {
-					var syn = Synth(ev[\target], [
+					var syn, args = [
 						\freq, ev[\midinote].midicps,
 						\amp,  ~masterAmp * (ev[\vel] / 127).squared * ~cueVolumeFor.(index),
 						\dur,  ev[\dur]
-					], group);
+					];
+					// \metroCue is a sample player: hand it the two loaded buffers so it
+					// can pick block (below A440) vs pling (above) from the note's freq.
+					if(ev[\target] == \metroCue) {
+						args = args ++ [\blockBuf, ~metroBlockBuf, \plingBuf, ~metroPlingBuf];
+					};
+					syn = Synth(ev[\target], args, group);
 					// F3: map this track's param controls to their continuous buses.
 					mapsForTrack.(ev[\track]).do({ |m| syn.map(m[0], m[1]) });
 				} {
