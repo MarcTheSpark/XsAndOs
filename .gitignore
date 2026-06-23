@@ -1,7 +1,10 @@
 # Performer's working config -- untracked so they can edit it (MIDI bindings,
 # tempo tweaks) without git-pull conflicts. lib/setup.scd seeds it from the
 # tracked data_original/ on a fresh clone. Edit data_original/ to ship updates.
-data/
+# No trailing slash: on the composer's machine data is a SYMLINK to data_original
+# (so live SC saves flow straight into the tracked seed), and a bare `data/` rule
+# would only match a real directory, not the symlink. `/data` ignores either.
+/data
 
 # MIDI cue source files (binary, managed outside git) -- but the runtime cue
 # source MUST ship so the cellist's git pull can actually play (else the cue
