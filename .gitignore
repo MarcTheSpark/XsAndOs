@@ -11,7 +11,11 @@ data/
 !midi/MIDICues.mid
 
 # Audio media (sound files used while experimenting -- large binaries, not
-# part of the runtime; kept locally only).
+# part of the runtime; kept locally only). lib/sounds/ is the experimentation
+# scratch dir -- ignored wholesale -- but metroblock.wav is a RUNTIME dependency
+# (the \metroCue voice loads it at engine boot) so it must ship.
+lib/sounds/
+!lib/sounds/metroblock.wav
 *.wav
 *.flac
 *.aif
