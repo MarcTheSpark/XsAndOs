@@ -24,11 +24,11 @@ MIDICues.mid   67.9122   69.9122   19
 MIDICues.mid   69.9122   71.9122   20
 MIDICues.mid   71.9122   73.8205   21
 MIDICues.mid   73.8205   80.781   22
-MIDICues.mid   80.781   84.0063   23
-MIDICues.mid   84.0063   109.3977   24
-MIDICues.mid   109.3977   135.8934   25
-MIDICues.mid   135.8934   178.3928   26
-MIDICues.mid   178.3928   257.3897   27
+MIDICues.mid   80.781   84.0063   23 ->
+MIDICues.mid   84.0063   109.3977   24 ->
+MIDICues.mid   109.3977   135.8934   25 ->
+MIDICues.mid   135.8934   178.3928   26 ->
+MIDICues.mid   178.3928   257.3897   27 ->
 MIDICues.mid   257.3897   272.4242   28
 MIDICues.mid   272.4242   281.5739   29
 MIDICues.mid   281.5739   286.5182   30
