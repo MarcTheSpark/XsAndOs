@@ -15,6 +15,6 @@
 1  audio  tremCue       Trem
 2  audio  sawCue        Saw
 3  audio  velvetSawCue  Velvet
-4  audio  pulseCue      Pulse
+# 4  audio  pulseCue      Pulse
 6  visual board         Board
 7  audio  metroCue      Metronome

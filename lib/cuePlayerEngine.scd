@@ -37,19 +37,20 @@
 // wants driven. `amp` is the velocity-derived level; `ampScale` (default 1) is a SEPARATE
 // multiplier the amp curve drives, so an amp curve SCALES velocity rather than replacing
 // it. Keep this contract in sync with ~paramList in the state block below.
-SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
+SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 4.5, gate = 1, cutoff = 3000, pan = 0, ampScale = 1|
 	var ampEnv = EnvGen.kr(
 		Env([0, 1, 1, 0], [atk, (dur - atk).max(0.001), rel], [\sin, \lin, \sin]),
 		doneAction: 2
 	);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2); // \gate->0 = fast release
-	var sig = LPF.ar(Saw.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
+	var sig = LPF.ar(Saw.ar(freq), EnvGen.ar(Env.perc(0, 6)).linexp(0, 1, 50, 1000)) * ampEnv * killEnv * amp * ampScale;
+	sig = sig * SinOsc.ar(EnvGen.ar(Env.perc(0,6)) * 15, mul: 0.4, add: 1);
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
 // Sibling voices: same arg contract as \sawCue, so any track can be routed to any of
 // them via tracks.txt. Distinct waveforms only -- stand-ins, not realistic instruments.
-SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.5, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
+SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.1, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
 	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
 	var sig = LPF.ar(LPF.ar(Pulse.ar(freq, 0.35), freq * 6), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
@@ -88,17 +89,23 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 // whose cutoff gets a sharp-scaled percussive bump; `chaos` wiggles the pitch.
 // ampEnv holds for `dur` then releases over `rel` and frees (so the note honors
 // its length); killEnv keeps the fast cue-stop fade.
+~getAmpEnv = {
+	|sharp, rel, dur|
+	var atk     = sharp.linexp(0, 1, 0.4, 0.002);
+	var dec = sharp.linexp(0, 1, 0.3, 0.01).min(dur - atk);
+	var sustLevel = sharp.linexp(0, 1, 0.75, 0.4);
+	Env([0, 1, sustLevel, sustLevel, 0], [atk, dec, dur - atk - dec, rel], [\lin, \sin, \lin, -2]);
+};
 SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sharp=0.5, chaos=0, sat=0.3, pan=0, ampScale=0.5|
 	var atk     = sharp.linexp(0, 1, 0.4, 0.002);
-	var ampEnv  = EnvGen.kr(
-		Env([0, 1, 0.78, 0], [atk, (dur - atk).max(0.001), rel], [\sin, -2, -2]),
-		doneAction: 2);
+	var ampEnv  = EnvGen.kr(~getAmpEnv.(sharp, rel, dur), doneAction: 2);
+
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
 	var fenv    = EnvGen.kr(Env.perc(0.001, 0.2 + (atk * 3)), gate);
 	// chaos-driven freq wiggle, evaluated twice for a decorrelated stereo pair
 	var wig     = { LFNoise2.kr(chaos.linexp(0, 1, 50, 300), mul: chaos * 0.25, add: 1) };
 	var f       = [freq * wig.value, freq * wig.value];
-	var whistle = Ringz.ar(PinkNoise.ar ! 2, f, 1 / (0.2 + (fenv / 5))) * 0.1;
+	var whistle = Ringz.ar(PinkNoise.ar ! 2, f, 1 / (0.2 + (fenv / 10))) * 0.1;
 	var sig     = XFade2.ar(whistle, Saw.ar(f), sat.linlin(0, 1, -1, 1));
 	var drive   = 1 + (sat.pow(2) * 8);
 	var cut     = (freq * (2 + (sat * 8)) * (1 + (fenv * (0.5 + (sharp * 6))))).clip(40, 18000);
