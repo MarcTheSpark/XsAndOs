@@ -47,6 +47,10 @@
 ~boardFadeRoutine = nil;                   // the running mark fade-out Routine, or nil
 ~boardGridFade = 0.0;                       // grid-line opacity 0..1 (starts hidden; 47 fades in, 49 fades out)
 ~boardGridFadeRoutine = nil;               // the running grid fade Routine, or nil
+~boardShowCueNum = false;                  // overlay the current cue number in the corner (~toggleCueNum)
+~boardCueIndex   = nil;                     // 0-based index the overlay shows; the engine sets it when a cue
+                                           // STARTS and on cursor moves, so it holds through a cue's trailing
+                                           // silence/release tail until the NEXT cue actually begins.
 
 ~boardColors = (
 	mark:  Color.white,
@@ -142,12 +146,34 @@
 			};
 		};
 	});
+
+	// Cue-number overlay (~toggleCueNum): the current cue's 1-based number in the
+	// window's top-left corner. ~boardCueIndex is maintained by the engine (set when
+	// a cue starts and on cursor moves), so it holds steady through a cue's trailing
+	// silence until the next cue begins -- it does NOT flip early off ~playing/~cueIndex.
+	if((~boardShowCueNum == true) and: { ~boardCueIndex.notNil }) {
+		var fs = (bh * 0.06).max(16);                // font size scales with the board
+		var pad = fs * 0.5;
+		Pen.stringAtPoint("Cue " ++ (~boardCueIndex + 1),
+			(bounds.left + pad) @ (bounds.top + pad),
+			Font("Helvetica", fs, true),
+			Color.white.alpha_(0.9));
+	};
 };
 
 // Request a redraw. Safe to call with no window open (no-op). The actual drawing
 // happens in ~boardRender via the view's drawFunc; this just triggers it.
 ~boardDraw = {
 	~boardView !? { ~boardView.refresh };
+};
+
+// Toggle the cue-number overlay (drawn in ~boardRender) on/off and redraw. Bound
+// to 'q' on the board too. Refresh is deferred so it's safe from the interpreter.
+~toggleCueNum = {
+	~boardShowCueNum = (~boardShowCueNum != true);
+	{ ~boardDraw.value }.defer;
+	("cue number display " ++ if(~boardShowCueNum) { "ON" } { "off" }).postln;
+	~boardShowCueNum;
 };
 
 // Fade the marks out over `dur` seconds (~30 fps on AppClock), then clear the
@@ -259,7 +285,18 @@
 			{ ~boardWin.close };
 		}
 		{ key == 32 } {
+			// spacebar: play the next cue (~next plays the cursor cue, cutting off any
+			// sounding cue). Backspace instead stops and STAYS on the current cue.
 			~next.();
+		}
+		// backspace: stop the current cue and STAY on it (~stop's sounding mode), so the
+		// next play restarts it. No-op when nothing is playing. Matched by ASCII code
+		// (8 = BS, 127 = DEL -- platforms differ) for OS independence, like Escape above.
+		{ (unicode == 8) or: { unicode == 127 } } {
+			if(~playing.notNil) { ~stop.() };
+		}
+		{ char == $q } {
+			~toggleCueNum.value;
 		}
 		// arrow keys shift the cursor without playing (Qt::Key_Left / _Right)
 		{ key == 16777234 } {

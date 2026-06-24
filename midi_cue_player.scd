@@ -11,7 +11,6 @@
 
 // --- SETUP: evaluate this one line once. Wait for "Ready." -------------------
 this.executeFile("lib/setup.scd".resolveRelative);
-MarcUtilities.setOutputLimiter(1, 0.5);
 
 // --- Play ------------------------------------------------------------------
 ~play.("1");   // play cue named "1"  (interrupts whatever is sounding)
@@ -39,6 +38,7 @@ MarcUtilities.setOutputLimiter(1, 0.5);
 ~boardGui.();                          // default 800x800 board, windowed
 ~boardGui.(700@700);                   // different fixed board size (centered)
 ~boardGui.(dimensions: 800@800, fullScreen: true);   // fullscreen ('f' / Esc to toggle)
+~toggleCueNum.();                      // show/hide the current cue number in the board corner ('q' on the board)
 
 // --- MIDI learn: bind a foot pedal / pad to an action, then play hands-free ---
 ~learnMIDINext.(true);    // arm, then press a control to bind it to "next"

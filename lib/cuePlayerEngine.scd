@@ -430,6 +430,10 @@ SynthDef(\paramBus, { |out = 0|
 		var t = line.stripWhiteSpace.replace("\t", " ");
 		if(t.notEmpty and: { t[0] != $# }) {
 			var tok = t.split($ ).reject({ |x| x.isEmpty });
+			// A trailing "->" means: when this cue finishes (its window end), auto-
+			// trigger the next cue. Stripped here so it doesn't pollute the name field.
+			var autoNext = (tok.last == "->");
+			if(autoNext) { tok = tok.drop(-1) };
 			if(tok.size >= 3) {
 				var fname = tok[0];
 				var base  = fname.basename;          // tempo-env fallback keys on the bare basename
@@ -439,7 +443,7 @@ SynthDef(\paramBus, { |out = 0|
 				            { "% [%-%]".format(base, tok[1], tok[2]) };  // keep the text as written
 				var p     = midiDir +/+ fname;
 				~cues = ~cues.add(
-					(name: label, file: base, path: p,
+					(name: label, file: base, path: p, autoNext: autoNext,
 						startBeat: sB, endBeat: eB, notes: ~readCueNotes.(p, sB, eB))
 				);
 			} {
@@ -515,6 +519,7 @@ SynthDef(\paramBus, { |out = 0|
 	} {
 		var env, lastBeat, maxBeat, map, events, group, routine;
 		var paramCurves, paramBuses, mapsForTrack, trackMapCache;
+		var cueLenBeats, cueEndTime;
 
 		~stopCue.value;
 
@@ -526,9 +531,20 @@ SynthDef(\paramBus, { |out = 0|
 		lastBeat = if(cue[\notes].isEmpty) { 0 } {
 			cue[\notes].collect({ |nt| nt[\startBeat] + nt[\durBeats] }).maxItem
 		};
-		// Cover the tempo env AND every param curve, so warping holds, not clips, late values.
-		maxBeat = ([lastBeat, env.duration] ++ paramCurves.collect({ |pc| pc[\env].duration })).maxItem;
+		// The cue's WINDOW length (endBeat - startBeat), which may extend past the last
+		// note. The routine waits to here before finishing, so the overlay/cursor advance
+		// -- and any auto-follow handoff -- land at the true end of the cue, not the last
+		// note. The time map must therefore cover the whole window, not just the notes.
+		cueLenBeats = cue[\endBeat] - cue[\startBeat];
+		// Cover the tempo env, every param curve, AND the window end, so warping holds
+		// (not clips) late values.
+		maxBeat = ([lastBeat, env.duration]
+			++ paramCurves.collect({ |pc| pc[\env].duration })
+			++ if(cueLenBeats != inf) { [cueLenBeats] } { [] }
+		).maxItem;
 		map = ~buildTimeMap.(env, maxBeat);
+		// Seconds from cue start to its window end (nil for an open-ended whole-file cue).
+		cueEndTime = if(cueLenBeats != inf) { ~beatToTime.(map, cueLenBeats) } { nil };
 
 		// Map each note's start/end beat through the integrated tempo curve, and
 		// resolve its track's role/target (which synth to play, or \visual board).
@@ -660,10 +676,22 @@ SynthDef(\paramBus, { |out = 0|
 					};
 				};
 			});
-			// Reached only on NATURAL completion -- a manual stop/interrupt halts the
-			// routine first. The cursor already advanced at play-start, so just mark
-			// stopped and reap the now-finished group after a short tail.
+			// Every note is launched (we're at the last note's ONSET). Hold until the
+			// cue's WINDOW end before finishing, so the cursor/overlay advance -- and any
+			// auto-follow handoff -- land at the true end of the cue, not the last note.
+			// This wait lives INSIDE the routine, so ~stopCue (which stops the routine)
+			// cancels it: a stopped cue never advances the overlay or auto-follows.
+			if(cueEndTime.notNil) { (cueEndTime - now).max(0).wait };
+			// Window finished NATURALLY (a manual stop/interrupt halted the routine above).
+			// Mark stopped, advance the overlay to the next cue (the cursor), and -- if
+			// auto-follow -- start it. ~playing is cleared first so ~playNext's ~stopCue is
+			// a no-op and the release tails ring on into the next cue. Reap after a tail.
 			~playing = nil;
+			~boardCueIndex = ~cueIndex;
+			if(~boardShowCueNum == true) { { ~boardDraw.value }.defer };
+			if((cue[\autoNext] == true) and: { (index + 1) < ~cues.size }) {
+				~playNext.value;
+			};
 			SystemClock.sched(1.0, { group.free; paramBuses.do(_.free); nil });
 		}).play(SystemClock);
 
@@ -673,6 +701,11 @@ SynthDef(\paramBus, { |out = 0|
 		// cue. Only ~stop holds the cursor back (see ~stop).
 		~cueIndex = (index + 1).min(~cues.size - 1);
 		"playing cue %".format(index + 1).postln;
+		// Board cue-number overlay: show the cue that just STARTED (not the advanced
+		// cursor), and keep it until the NEXT cue starts -- so it holds through this
+		// cue's trailing silence/release tail and an auto-follow handoff.
+		~boardCueIndex = index;
+		if(~boardShowCueNum == true) { { ~boardDraw.value }.defer };
 	};
 };
 
@@ -691,6 +724,9 @@ SynthDef(\paramBus, { |out = 0|
 // 1-based to match the score / ~play.
 ~announceCue = {
 	~cues[~cueIndex] !? { "on cue %".format(~cueIndex + 1).postln };
+	// the cursor moved without playing -> the board overlay follows it
+	~boardCueIndex = ~cueIndex;
+	if(~boardShowCueNum == true) { { ~boardDraw.value }.defer };
 };
 
 // ===========================================================================
