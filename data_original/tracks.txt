@@ -1,7 +1,7 @@
 # Track -> synth/role map for the cue player.  One line per track:
 #     track  role  target  [name...]
 #   role   = audio | visual
-#   target = a SynthDef name (sawCue/pulseCue/sineCue/triCue) when role is audio,
+#   target = a SynthDef name (sawCue/pulseCue/tremCue/triCue) when role is audio,
 #            or  board  when role is visual
 #   name   = OPTIONAL human-readable track name (may contain spaces). Shown in the
 #            curve editor's track menu; only listed audio tracks appear there.
@@ -12,7 +12,7 @@
 # instrument parts; 4 is sparse. Adjust voices to taste. The visualization
 # track
 
-1  audio  sineCue       Sine
+1  audio  tremCue       Trem
 2  audio  sawCue        Saw
 3  audio  velvetSawCue  Velvet
 4  audio  pulseCue      Pulse

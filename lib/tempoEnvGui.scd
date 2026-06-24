@@ -2,13 +2,14 @@
 // tempoEnvGui.scd  --  a GUI to draw per-cue tempo curves (BPM over beats).
 //
 // Loaded once by midi_cue_player.scd (this.executeFile ...). Opens with
-//   ~tempoGui.value
+//   ~curveGui.value
 // Built on the core EnvelopeView. The envelope ALWAYS spans the full cue: the
 // x axis is the cue's length in beats with the first node pinned at the left and
 // the last node pinned at the right. The y axis is BPM; its range is shown by the
 // two boxes at the top-right / bottom-right of the graph (auto-fit on load,
 // editable). Drag nodes to shape the curve, pick a curve type per segment,
-// add/remove interior nodes, audition, and save to ~tempoEnvPath.
+// add/remove interior nodes, audition, and save (~saveCurves: tempos.txt +
+// otherCurves.txt).
 //
 // Edits write straight into ~tempoEnvs[cueName], so ~play / ~next pick them up
 // immediately. Numbers are kept to 2-decimal precision.
@@ -64,7 +65,7 @@
 };
 
 ~openTempoEnvGui = {
-	var win, env, graph, cueMenu, trackMenu, paramMenu, curveMenu, curveNumBox, addBtn, remBtn, audBtn, saveBtn, info;
+	var win, env, graph, cueMenu, trackMenu, paramMenu, curveMenu, curveNumBox, addBtn, remBtn, audBtn, saveBtn, dupBtn, info;
 	var minBpmBox, maxBpmBox, yLabel;
 	var minBPM = 40, maxBPM = 240, cueLen = 16;
 	var currentName, model, names, updating = false;
@@ -105,7 +106,7 @@
 	paramItems = ["tempo"] ++ ~paramList.collect(_.asString);
 
 	if(names.isEmpty) {
-		"tempoGui: no cues loaded -- run SETUP / ~loadCueSheet first.".warn;
+		"curveGui: no cues loaded -- run SETUP / ~loadCueSheet first.".warn;
 		nil
 	} {
 		updateInfo = {
@@ -255,8 +256,41 @@
 		});
 
 		audBtn  = Button().states_([["> audition"]]).action_({ ~play.(currentName) });
-		saveBtn = Button().states_([["save all"]]).action_({
-			~tempoEnvPath.notNil.if({ ~saveTempoEnvs.(~tempoEnvPath) }, { "tempoGui: ~tempoEnvPath not set.".warn });
+		saveBtn = Button().states_([["save all"]]).action_({ ~saveCurves.value });
+
+		// Seed THIS cue from the PREVIOUS one in the list: copy the previous cue's
+		// tempo curve and every one of its (track, param) curves into this cue, each
+		// re-fit (x rescaled) to this cue's beat length, then reload the view. Useful
+		// for a run of cues that share a tempo shape. A no-op on the first cue.
+		dupBtn = Button().states_([["duplicate last"]]).action_({
+			var idx   = cueMenu.value;
+			var fitTo = { |e, len|                      // stretch an env to span `len` beats
+				var total = e.times.sum;
+				var sc    = if(total > 0) { len / total } { 1 };
+				Env(e.levels.copy, e.times.collect({ |t| (t * sc).max(0.001).round(0.01) }), e.curves);
+			};
+			if(idx <= 0) {
+				"curveGui: no previous cue to duplicate.".warn;
+			} {
+				var prevName = names[idx - 1];
+				var curLen   = ~cueBeatLength.(~cues[idx]);
+				var n        = 0;
+				~tempoEnvs[prevName] !? { |e| ~tempoEnvs[currentName] = fitTo.(e, curLen); n = n + 1 };
+				~paramEnvs.keys.asArray.do({ |k|
+					var pp = k.split($\t);              // [cue, track, param]
+					if(pp[0] == prevName) {
+						~paramEnvs[~paramKey.(currentName, pp[1], pp[2])] = fitTo.(~paramEnvs[k], curLen);
+						n = n + 1;
+					};
+				});
+				if(n == 0) {
+					"curveGui: previous cue '%' has no curves to duplicate.".format(prevName).warn;
+				} {
+					"duplicated % curve(s) from cue '%' -> '%'".format(n, prevName, currentName).postln;
+					loadCue.value(currentName);        // reload the shown (track, param) view
+					syncCurveMenu.value;
+				};
+			};
 		});
 
 		maxBpmBox = NumberBox().decimals_(2).align_(\right)
@@ -355,7 +389,7 @@
 
 		win = Window("Curve Editor  (x = beats, y = tempo / param)", Rect(200, 200, 680, 470));
 		win.layout_(VLayout(
-			HLayout( StaticText().string_("cue:").maxWidth_(28), cueMenu, nil, audBtn, saveBtn ),
+			HLayout( StaticText().string_("cue:").maxWidth_(28), cueMenu, dupBtn, nil, audBtn, saveBtn ),
 			HLayout( StaticText().string_("track:").maxWidth_(38), trackMenu,
 				StaticText().string_("param:").maxWidth_(44), paramMenu, nil ),
 			HLayout(
@@ -382,7 +416,7 @@
 };
 
 // convenience alias the Main file documents
-~tempoGui = { ~openTempoEnvGui.value };
+~curveGui = { ~openTempoEnvGui.value };
 
 "tempo env GUI loaded.".postln;
 )

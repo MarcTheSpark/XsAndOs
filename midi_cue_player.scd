@@ -29,7 +29,7 @@ this.executeFile("lib/setup.scd".resolveRelative);
 ~tempoMul = 1;
 
 // --- Curve editor: draw tempo (BPM) or per-(track, param) curves for each cue ---
-~tempoGui.();
+~curveGui.();
 
 // --- Synth tester: audition the cue voices listed in tracks.txt (play/hold a note) ---
 ~synthGui.();

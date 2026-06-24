@@ -38,7 +38,11 @@
 
 // state: 9 cells, each (player: 0|1|2, win: bool); player 0 == empty.
 ~boardState  = Array.fill(9, { (player: 0, win: false) });
-~boardNewest = nil;                       // index of the most recent move (drawn bold)
+~boardNewest = [];                        // indices of the most recent move(s) -- all drawn bold. A
+                                          // collection so simultaneously-drawn marks (a chord) stay bold
+                                          // together until the NEXT (non-simultaneous) move replaces them.
+~boardNewestTime = -inf;                  // elapsedTime of the current bold batch (for the chord window)
+~boardNewestWindow = 0.04;                // s: draws within this of the batch join it (else start a new one)
 ~boardWin    = nil;                        // the Window, or nil if never opened
 ~boardView   = nil;                        // the UserView we draw the board onto, or nil
 ~boardSize   = 800@800;                     // fixed board size (a Point), drawn centered in the window
@@ -48,9 +52,10 @@
 ~boardGridFade = 0.0;                       // grid-line opacity 0..1 (starts hidden; 47 fades in, 49 fades out)
 ~boardGridFadeRoutine = nil;               // the running grid fade Routine, or nil
 ~boardShowCueNum = false;                  // overlay the current cue number in the corner (~toggleCueNum)
-~boardCueIndex   = nil;                     // 0-based index the overlay shows; the engine sets it when a cue
-                                           // STARTS and on cursor moves, so it holds through a cue's trailing
-                                           // silence/release tail until the NEXT cue actually begins.
+~boardCueIndex   = 0;                       // 0-based index the overlay shows (defaults to cue 1 so the overlay
+                                           // reads "Cue 1" before anything has played); the engine sets it when
+                                           // a cue STARTS and on cursor moves, so it holds through a cue's
+                                           // trailing silence/release tail until the NEXT cue actually begins.
 
 ~boardColors = (
 	mark:  Color.white,
@@ -63,7 +68,8 @@
 
 ~boardClear = {
 	~boardState  = Array.fill(9, { (player: 0, win: false) });
-	~boardNewest = nil;
+	~boardNewest = [];
+	~boardNewestTime = -inf;
 };
 
 // Apply one pitch to the state (no GUI). vel 127 => winning cell.
@@ -80,8 +86,13 @@
 			player = 2; sq = pitch - ~boardP2Base;
 		};
 		player.notNil.if {
+			// Start a fresh bold batch unless this draw is (near-)simultaneous with the
+			// current one -- then it JOINS the batch, so chorded marks all stay bold.
+			var nowT = Main.elapsedTime;
+			if((nowT - ~boardNewestTime) > ~boardNewestWindow) { ~boardNewest = [] };
+			~boardNewestTime = nowT;
 			~boardState[sq] = (player: player, win: (vel >= 127));
-			~boardNewest = sq;
+			~boardNewest = ~boardNewest.add(sq);
 			if(~boardDebug == true) {
 				"  [debug] board: pitch % -> P% square % %".format(
 					pitch, player, sq, if(vel >= 127) { "(WIN)" } { "" }).postln;
@@ -135,8 +146,8 @@
 				1, { if(cell[\win]) { ~boardColors[\p1win] } { ~boardColors[\mark] } },
 				2, { if(cell[\win]) { ~boardColors[\p2win] } { ~boardColors[\mark] } });
 			Pen.strokeColor = Color(base.red, base.green, base.blue, base.alpha * fade);
-			// thick when it's the newest move OR a winning (vel >= 127) cell
-			Pen.width = if((i == ~boardNewest) or: { cell[\win] }) { lineW * 2 } { lineW * 1.2 };
+			// thick when it's one of the newest move(s) OR a winning (vel >= 127) cell
+			Pen.width = if(~boardNewest.includes(i) or: { cell[\win] }) { lineW * 2 } { lineW * 1.2 };
 			if(player == 1) {                       // X: two diagonals
 				Pen.moveTo(r.left @ r.top);    Pen.lineTo(r.right @ r.bottom);
 				Pen.moveTo(r.left @ r.bottom); Pen.lineTo(r.right @ r.top);

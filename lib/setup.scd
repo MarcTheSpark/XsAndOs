@@ -17,12 +17,13 @@
 var dataDir     = "../data".resolveRelative.standardizePath;
 var dataOrigDir = "../data_original".resolveRelative.standardizePath;
 var enginePath  = "cuePlayerEngine.scd".resolveRelative;
-var tempoGuiPath = "tempoEnvGui.scd".resolveRelative;
+var curveGuiPath = "tempoEnvGui.scd".resolveRelative;
 var boardGuiPath = "boardGui.scd".resolveRelative;
 var synthTesterPath = "synthTesterGui.scd".resolveRelative;
 var tracksPath  = dataDir +/+ "tracks.txt";
 var cuesPath    = dataDir +/+ "cues.txt";
 var temposPath  = dataDir +/+ "tempos.txt";
+var otherCurvesPath = dataDir +/+ "otherCurves.txt";
 var levelsPath  = dataDir +/+ "levels.txt";
 var midiMapPath = dataDir +/+ "midi_map.txt";
 var midiDir     = "../midi".resolveRelative;
@@ -39,7 +40,7 @@ if(File.exists(dataDir).not) { File.mkdir(dataDir) };
 
 s.waitForBoot({
 	this.executeFile(enginePath);                 // the engine (~play/~next/~stop, synths, ...)
-	this.executeFile(tempoGuiPath);               // ~tempoGui curve editor
+	this.executeFile(curveGuiPath);               // ~curveGui curve editor
 	this.executeFile(boardGuiPath);               // ~boardGui visualization board
 	this.executeFile(synthTesterPath);            // ~synthGui voice tester
 
@@ -49,8 +50,10 @@ s.waitForBoot({
 	~midiDir = midiDir;                           // where the .mid source files live
 	~loadCueSheet.(cuesPath);                     // filenames resolve against ~midiDir
 
-	~tempoEnvPath = temposPath;
-	~loadTempoEnvs.(temposPath);                  // drawn tempo/param curves
+	~tempoEnvPath   = temposPath;
+	~otherCurvePath = otherCurvesPath;
+	~loadCurves.(temposPath);                     // drawn tempo curves
+	~loadCurves.(otherCurvesPath);                // drawn F3 (cue, track, param) curves
 
 	~cueLevelPath = levelsPath;
 	~loadCueLevels.(levelsPath);                  // per-cue volume levels

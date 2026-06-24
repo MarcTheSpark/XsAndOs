@@ -56,11 +56,23 @@ SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.5, dur = 1, atk = 0.005, rel
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
 
-SynthDef(\sineCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
-	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
-	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
-	var sig = LPF.ar(SinOsc.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
-	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
+// \tremCue is a SAMPLE voice: it LOOPS the violin tremolo sounds/violintrem.wav
+// (fundamental ~G4 / 392 Hz) transposed to the note's freq, under a gentle percussive
+// amp envelope whose decay scales with `dur`, and a lowpass filter that sweeps from
+// 4 kHz down to 30 Hz over `dur` (so the note darkens as it decays). The `cutoff`
+// control CAPS that sweep (default 20000 = no cap), so an F3 cutoff curve can still
+// pull it lower. ~playCue passes the loaded buffer as `buf` (see ~violinTremBuf below);
+// like \metroCue it loops/plays the sample, not an oscillator.
+SynthDef(\tremCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.02, rel = 4.5, gate = 1, cutoff = 20000, pan = 0, ampScale = 1, buf = 0|
+	var base    = 392;                                              // sample fundamental ~ G4
+	var rate    = BufRateScale.kr(buf) * (freq / base);            // transpose to the note's pitch
+	var src     = PlayBuf.ar(2, buf, rate, loop: 1);               // loop so notes longer than the sample sustain
+	var attack  = (dur * 0.1).clip(atk, 0.4);                      // gentle attack, scales a little with dur
+	var ampEnv  = EnvGen.kr(Env.perc(attack, dur + rel), doneAction: 2);  // percussive, decay ~ dur
+	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);             // \gate->0 = fast cue-stop fade
+	var fc      = min(EnvGen.kr(Env([4000, 30], [dur + rel], \exp)), cutoff);            // 4 kHz -> 30 Hz over dur, capped by cutoff
+	var sig     = LPF.ar(src, fc.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
+	Out.ar(out, Balance2.ar(sig[0], sig[1], (pan + LFNoise1.kr(18, mul: 0.6)).clip(-1, 1)));
 }).add;
 
 SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
@@ -198,12 +210,17 @@ SynthDef(\paramBus, { |out = 0|
 // Path resolves relative to lib/ (this file). Stereo file.
 ~metroBlockBuf = Buffer.read(s, "sounds/metroblock.wav".resolveRelative);
 
+// Sample buffer for \tremCue (the looping violin-tremolo voice), loaded once like
+// ~metroBlockBuf. ~playCue passes it to each \tremCue note as `buf`. Stereo file.
+~violinTremBuf = Buffer.read(s, "sounds/violintrem.wav".resolveRelative);
+
 
 // ---------------------------------------------------------------------------
 // State + tempo-envelope storage. ~tempoEnvs maps a key -> Env of BPM over
 // (window) BEATS. Lookup tries the cue's name, then its file, then the default.
 // ---------------------------------------------------------------------------
 ~masterAmp       = 0.25;
+~ignoreVelocity  = true;                     // true => ignore MIDI velocity, play every note at full level (still scaled by ~masterAmp, cue levels, and amp curves)
 ~cues            = [];                       // [ (name:, file:, path:, startBeat:, endBeat:, notes:) ]
 ~cueIndex        = 0;                         // cursor: index of the cue ~next will play
 ~playing         = nil;                       // (routine:, group:, index:)
@@ -307,7 +324,8 @@ SynthDef(\paramBus, { |out = 0|
 ~midiLearning      = nil;                      // action awaiting a control during MIDI-learn, else nil
 ~midiLearnSavePath = nil;                      // if set, save the map right after the next learn
 ~midiMapPath       = nil;                      // default config path (SETUP sets this)
-~tempoEnvPath      = nil;                      // default tempo-envelope config path (SETUP sets this)
+~tempoEnvPath      = nil;                      // default tempo-curve config path (tempos.txt; SETUP sets this)
+~otherCurvePath    = nil;                      // default param-curve config path (otherCurves.txt; SETUP sets this)
 
 ~tempoEnvFor = { |cue|
 	~tempoEnvs[cue[\name]] ?? { ~tempoEnvs[cue[\file]] ?? { ~defaultTempoEnv } };
@@ -643,13 +661,17 @@ SynthDef(\paramBus, { |out = 0|
 				if(ev[\role] == \audio) {
 					var syn, args = [
 						\freq, ev[\midinote].midicps,
-						\amp,  ~masterAmp * (ev[\vel] / 127).squared * ~cueVolumeFor.(index),
+						\amp,  ~masterAmp * (if(~ignoreVelocity == true) { 1 } { (ev[\vel] / 127).squared }) * ~cueVolumeFor.(index),
 						\dur,  ev[\dur]
 					];
 					// \metroCue is a sample player: hand it the loaded block buffer, which
 					// it plays back pitched by the note's freq (1x at A440).
 					if(ev[\target] == \metroCue) {
 						args = args ++ [\blockBuf, ~metroBlockBuf];
+					};
+					// \tremCue loops the violin-tremolo sample: hand it that buffer as `buf`.
+					if(ev[\target] == \tremCue) {
+						args = args ++ [\buf, ~violinTremBuf];
 					};
 					syn = Synth(ev[\target], args, group);
 					// F3: map this track's param controls to their continuous buses.
@@ -706,6 +728,12 @@ SynthDef(\paramBus, { |out = 0|
 		// cue's trailing silence/release tail and an auto-follow handoff.
 		~boardCueIndex = index;
 		if(~boardShowCueNum == true) { { ~boardDraw.value }.defer };
+		// Crisscross grid: every cue EXCEPT the first and last shows it, so jumping
+		// straight to a middle cue isn't left grid-less (a 49/47 note in the cue can
+		// still fade it out/in afterwards). The first cue fades it in, the last out.
+		if((index > 0) and: { index < (~cues.size - 1) }) {
+			~boardFadeGrid !? { { ~boardFadeGrid.(1, 0) }.defer };
+		};
 	};
 };
 
@@ -975,8 +1003,11 @@ SynthDef(\paramBus, { |out = 0|
 };
 
 // ===========================================================================
-// TEMPO-ENVELOPE PERSISTENCE  --  save/load ~tempoEnvs as plain text. One line
-// per envelope:   <cue name> | <bpm levels> | <beat durations> | <curves>
+// CURVE PERSISTENCE  --  save/load the drawn curves as plain text. TEMPO curves
+// live in tempos.txt (~tempoEnvPath); all the other (cue, track, param) curves
+// live in otherCurves.txt (~otherCurvePath) -- two files so the tempo map stays
+// independent of the F3 param curves. One line per curve:
+//     <cue name> | <track> | <param> | <levels> | <beat durations> | <curves>
 // The name is everything before the first '|' (so spaces/brackets in cue names
 // are fine). Curves are named shapes (lin/exp/sin/...) or numeric curvatures.
 // ===========================================================================
@@ -998,23 +1029,40 @@ SynthDef(\paramBus, { |out = 0|
 		name, track, param, env.levels.join(" "), env.times.join(" "), curves.join(" "));
 };
 
+// Tempo curves only -> tempos.txt (each written track "*", param "tempo").
 ~saveTempoEnvs = { |path|
-	var p = path.standardizePath, f = File(p, "w"), n = 0;
-	f.write("# curves:  name | track | param | bpm/value levels | beat durations | curves\n");
-	f.write("#   param 'tempo' (track '*') = the cue's tempo curve; others = (cue, track, param)\n");
-	~tempoEnvs.keysValuesDo({ |name, env| f.write(~envToLine.(name, "*", "tempo", env) ++ "\n"); n = n + 1 });
-	~paramEnvs.keysValuesDo({ |k, env|
-		var pp = k.split($\t);   // [cue, track, param]
-		f.write(~envToLine.(pp[0], pp[1], pp[2], env) ++ "\n");  n = n + 1;
-	});
+	var p = path.standardizePath, f = File(p, "w");
+	f.write("# tempo curves:  name | * | tempo | bpm levels | beat durations | curves\n");
+	~tempoEnvs.keysValuesDo({ |name, env| f.write(~envToLine.(name, "*", "tempo", env) ++ "\n") });
 	f.close;
-	"saved % curve(s) (% tempo, % param) to %".format(n, ~tempoEnvs.size, ~paramEnvs.size, p).postln;
+	"saved % tempo curve(s) to %".format(~tempoEnvs.size, p).postln;
 };
 
-// Reads both the new 6-field format and the legacy 4-field tempo format
-// (name | levels | durs | curves). Trailing 3 columns are always levels/durs/curves;
-// a missing param column means 'tempo', a missing track column means '*' (all tracks).
-~loadTempoEnvs = { |path|
+// Non-tempo (cue, track, param) curves only -> otherCurves.txt.
+~saveOtherCurves = { |path|
+	var p = path.standardizePath, f = File(p, "w");
+	f.write("# param curves:  name | track | param | value levels | beat durations | curves\n");
+	~paramEnvs.keysValuesDo({ |k, env|
+		var pp = k.split($\t);   // [cue, track, param]
+		f.write(~envToLine.(pp[0], pp[1], pp[2], env) ++ "\n");
+	});
+	f.close;
+	"saved % param curve(s) to %".format(~paramEnvs.size, p).postln;
+};
+
+// Save BOTH curve files (the curve editor's "save all"): tempo -> ~tempoEnvPath,
+// the rest -> ~otherCurvePath. Skips a file whose path isn't set.
+~saveCurves = {
+	~tempoEnvPath   !? { |p| ~saveTempoEnvs.(p) }  ?? { "saveCurves: ~tempoEnvPath not set.".warn };
+	~otherCurvePath !? { |p| ~saveOtherCurves.(p) } ?? { "saveCurves: ~otherCurvePath not set.".warn };
+};
+
+// Load a curve file (tempos.txt OR otherCurves.txt -- each line is routed to the
+// right dictionary by its param field, so a file may hold either or, for an old
+// combined tempos.txt, both). Reads the new 6-field format and the legacy 4-field
+// tempo format (name | levels | durs | curves); trailing 3 columns are always
+// levels/durs/curves; a missing param means 'tempo', a missing track means '*'.
+~loadCurves = { |path|
 	var p = path.standardizePath, nt = 0, np = 0;
 	if(File.exists(p)) {
 		File.readAllString(p).split($\n).do({ |line|
@@ -1039,13 +1087,16 @@ SynthDef(\paramBus, { |out = 0|
 						~paramEnvs[~paramKey.(name, track, param)] = env;  np = np + 1;
 					};
 				} {
-					"loadTempoEnvs: skipping malformed line: %".format(line).warn;
+					"loadCurves: skipping malformed line: %".format(line).warn;
 				};
 			};
 		});
 		"loaded % tempo + % param curve(s) from %".format(nt, np, p).postln;
 	};
 };
+
+// Back-compat alias: the loader used to be named ~loadTempoEnvs.
+~loadTempoEnvs = ~loadCurves;
 
 "cue player engine loaded.".postln;
 )

@@ -49,7 +49,7 @@
 		.select({ |r| r[\role] == \audio })
 		.collect({ |r| r[\target] }).as(Set).asArray;
 	if(fromTracks.isEmpty) {
-		[\sawCue, \pulseCue, \sineCue, \triCue, \velvetSawCue, \lorenzCue]
+		[\sawCue, \pulseCue, \tremCue, \triCue, \velvetSawCue, \lorenzCue]
 	} {
 		fromTracks
 	}.sort({ |a, b| a.asString < b.asString });
@@ -165,6 +165,6 @@
 	win;
 };
 
-~synthGui = ~openSynthTester;   // short alias, parallel to ~tempoGui / ~boardGui
+~synthGui = ~openSynthTester;   // short alias, parallel to ~curveGui / ~boardGui
 "synthTesterGui loaded -- ~synthGui.() to audition the track voices.".postln;
 )
