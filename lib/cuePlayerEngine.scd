@@ -193,12 +193,19 @@ SynthDef(\lorenzCue, {
 // `dur` -- it plays the whole (rate-scaled) sample once and self-frees (PlayBuf
 // doneAction 2). killEnv keeps the fast cue-stop fade. blockBuf is the loaded
 // buffer, passed by ~playCue (see ~metroBlockBuf below). The sample is stereo.
-SynthDef(\metroCue, { |out = 0, freq = 440, amp = 1.0, dur = 1, gate = 1, pan = 0, ampScale = 1, blockBuf = 0|
+// `clickOut` selects where the click goes: 0 => the main stereo pair (outputs 1/2,
+// panned, audible with everything else); 1 => a MONO feed on output 3 (out + 2, e.g.
+// the conductor's click monitor, off the main mix). ~playCue passes the current
+// ~clickOut; toggle it with ~toggleClick.
+SynthDef(\metroCue, { |out = 0, freq = 440, amp = 1.0, dur = 1, gate = 1, pan = 0, ampScale = 1, blockBuf = 0, clickOut = 0|
 	var rate    = BufRateScale.kr(blockBuf) * (freq / 440);   // 1x at A440, pitched by freq ratio
 	var sig     = PlayBuf.ar(2, blockBuf, rate, doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);   // \gate->0 = fast cue-stop fade
-	sig = sig * killEnv * amp * ampScale;
-	Out.ar(out, Balance2.ar(sig[0], sig[1], pan.clip(-1, 1)));
+	var mono;
+	sig  = sig * killEnv * amp * ampScale;
+	mono = (sig[0] + sig[1]) * 0.5;
+	Out.ar(out,     Balance2.ar(sig[0], sig[1], pan.clip(-1, 1)) * (1 - clickOut));  // main pair (out, out+1)
+	Out.ar(out + 2, mono * clickOut);                                               // click monitor (output 3)
 }).add;
 
 
@@ -228,6 +235,15 @@ SynthDef(\paramBus, { |out = 0|
 // ---------------------------------------------------------------------------
 ~masterAmp       = 0.25;
 ~ignoreVelocity  = true;                     // true => ignore MIDI velocity, play every note at full level (still scaled by ~masterAmp, cue levels, and amp curves)
+~clickOut        = 0;                         // click-track (\metroCue) routing: 0 = main outputs 1/2, 1 = output 3 (click monitor); ~playCue reads it per note
+
+// Toggle the click track between the main outputs 1/2 and output 3 (a separate click
+// monitor feed). Takes effect on the next click note played (like ~tempoMul).
+~toggleClick = {
+	~clickOut = 1 - ~clickOut;
+	"click track -> %".format(if(~clickOut == 0) { "main outputs 1/2" } { "output 3 (monitor)" }).postln;
+	~clickOut;
+};
 ~cues            = [];                       // [ (name:, file:, path:, startBeat:, endBeat:, notes:) ]
 ~cueIndex        = 0;                         // cursor: index of the cue ~next will play
 ~playing         = nil;                       // (routine:, group:, index:)
@@ -672,9 +688,10 @@ SynthDef(\paramBus, { |out = 0|
 						\dur,  ev[\dur]
 					];
 					// \metroCue is a sample player: hand it the loaded block buffer, which
-					// it plays back pitched by the note's freq (1x at A440).
+					// it plays back pitched by the note's freq (1x at A440), plus the current
+					// click-track routing (~clickOut: main 1/2 vs output 3 -- see ~toggleClick).
 					if(ev[\target] == \metroCue) {
-						args = args ++ [\blockBuf, ~metroBlockBuf];
+						args = args ++ [\blockBuf, ~metroBlockBuf, \clickOut, ~clickOut];
 					};
 					// \tremCue loops the violin-tremolo sample: hand it that buffer as `buf`.
 					if(ev[\target] == \tremCue) {

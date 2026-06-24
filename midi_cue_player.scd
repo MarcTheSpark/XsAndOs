@@ -28,6 +28,9 @@ this.executeFile("lib/setup.scd".resolveRelative);
 ~tempoMul = 0.75;
 ~tempoMul = 1;
 
+// --- Click track: toggle the metronome between main outputs 1/2 and output 3 (monitor) ---
+~toggleClick.();
+
 // --- Curve editor: draw tempo (BPM) or per-(track, param) curves for each cue ---
 ~curveGui.();
 

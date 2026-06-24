@@ -16,10 +16,11 @@
 //             tempo-warped duration in seconds), then resets the state. EXCEPTION:
 //             a clear chorded with a draw note (same onset) clears INSTANTLY so the
 //             new move lands on a fresh board (the engine passes dur 0; see ~playCue).
-//   49      = fade the GRID lines OUT over dur (the crisscross disappears)
-//   47      = fade the GRID lines IN over dur (the crisscross appears)
-//             (49/47 drive ~boardGridFade and touch only the grid lines, not the
-//              marks or background. The grid STARTS fully faded out.)
+//   49      = fade the grid AND all marks OUT over dur (grid + marks disappear)
+//   47      = fade the grid AND all marks IN over dur (they reappear)
+//             (49/47 fade ~boardGridFade and ~boardFade together -- the grid lines and
+//              the marks, but not the background. Unlike 48 this does NOT reset state:
+//              marks are hidden, not cleared. The grid STARTS fully faded out.)
 //   velocity 127 marks a WINNING-line cell -> drawn thick + coloured (X vibrant red,
 //             O vibrant green); the newest move is also drawn thick
 //
@@ -215,32 +216,40 @@
 	if(~boardDebug == true) { "  [debug] board: pitch 48 -> CLEAR (fade %.2f s)".format(dur).postln };
 };
 
-// Fade the GRID lines' opacity from its current value to `to` (0=hidden, 1=full) over
-// `dur` seconds (~30 fps on AppClock), then hold at `to`. Cancels any grid fade in
-// flight. A non-positive dur snaps instantly. Touches only the grid (~boardGridFade),
-// not the marks or background. Must run on AppClock.
+// Fade the GRID lines AND the marks together from their current opacity to `to`
+// (0=hidden, 1=full) over `dur` seconds (~30 fps on AppClock), then hold at `to`.
+// So the grid fade-out (49) also fades every mark out, and the fade-in (47) brings
+// both back. Unlike the clear (48) this does NOT reset the board state -- the marks
+// are just hidden (~boardFade) and reappear on a fade-in or the next move. Cancels any
+// grid OR mark fade already running so they don't fight over ~boardFade. Snaps
+// instantly for a non-positive dur. Must run on AppClock.
 ~boardFadeGrid = { |to = 1, dur = 0|
-	var from = ~boardGridFade;
+	var gridFrom = ~boardGridFade, markFrom = ~boardFade;
 	~boardGridFadeRoutine.stop;                   // cancel a grid fade already running
+	~boardFadeRoutine.stop; ~boardFadeRoutine = nil;   // and any clear/mark fade (shares ~boardFade)
 	if(dur > 0.05) {
 		var steps = (dur * 30).max(1).round.asInteger;
 		var dt    = dur / steps;
 		~boardGridFadeRoutine = Routine({
 			steps.do({ |k|
-				~boardGridFade = from + ((to - from) * ((k + 1) / steps));
+				var f = (k + 1) / steps;
+				~boardGridFade = gridFrom + ((to - gridFrom) * f);
+				~boardFade     = markFrom + ((to - markFrom) * f);
 				~boardDraw.value;
 				dt.wait;
 			});
 			~boardGridFade = to;
+			~boardFade     = to;
 			~boardGridFadeRoutine = nil;
 			~boardDraw.value;
 		}).play(AppClock);
 	} {
 		~boardGridFade = to;
+		~boardFade     = to;
 		~boardGridFadeRoutine = nil;
 		~boardDraw.value;
 	};
-	if(~boardDebug == true) { "  [debug] board: grid fade % -> % (%.2f s)".format(from, to, dur).postln };
+	if(~boardDebug == true) { "  [debug] board: grid+mark fade % -> % (%.2f s)".format(gridFrom, to, dur).postln };
 };
 
 // Public entry called by the engine for each visual note. Wrapped in .defer so
@@ -296,13 +305,14 @@
 			{ ~boardWin.close };
 		}
 		{ key == 32 } {
-			// spacebar: play the next cue (~next plays the cursor cue, cutting off any
-			// sounding cue). Backspace instead stops and STAYS on the current cue.
+			// spacebar: stop the current cue and trigger the next (~next cuts off any
+			// sounding cue and plays the cue at the cursor).
 			~next.();
 		}
 		// backspace: stop the current cue and STAY on it (~stop's sounding mode), so the
-		// next play restarts it. No-op when nothing is playing. Matched by ASCII code
-		// (8 = BS, 127 = DEL -- platforms differ) for OS independence, like Escape above.
+		// next play restarts it. Always available (a stop is never dangerous). No-op when
+		// nothing is playing. Matched by ASCII code (8 = BS, 127 = DEL -- platforms differ)
+		// for OS independence, like Escape above.
 		{ (unicode == 8) or: { unicode == 127 } } {
 			if(~playing.notNil) { ~stop.() };
 		}
