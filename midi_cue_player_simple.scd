@@ -10,6 +10,7 @@
 (
 s.options.numOutputBusChannels_(4);
 this.executeFile("lib/setup.scd".resolveRelative);
+s.waitForBoot({s.sync; ~performanceMode = true;});
 )
 
 ~toggleClick.();

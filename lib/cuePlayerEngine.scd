@@ -27,8 +27,10 @@
 //   - ampEnv holds for the note's full `dur`, THEN releases over `rel` (total
 //     life dur + rel) and self-frees (doneAction 2). The release tail therefore
 //     rings PAST `dur` into the next note (natural; can thicken dense passages).
-//   - killEnv is a sustained gate at 1.0; \gate->0 fades it out fast so playCue
-//     can interrupt the previous cue without a click.
+//   - killEnv is a sustained gate at 1.0; \gate->0 fades it out so playCue can
+//     interrupt the previous cue without a click. Its release is the `fadeTime`
+//     control (default 0.02 s); ~stopCue sets it to ~cueFadeDur before dropping
+//     the gate, so a stopped/interrupted cue fades over ~cueFadeDur.
 //   - velocity -> amp is squared (roughly perceptual).
 // ---------------------------------------------------------------------------
 // Shared arg contract: out/freq/amp/dur/atk/rel/gate PLUS the F3 param controls
@@ -37,12 +39,12 @@
 // wants driven. `amp` is the velocity-derived level; `ampScale` (default 1) is a SEPARATE
 // multiplier the amp curve drives, so an amp curve SCALES velocity rather than replacing
 // it. Keep this contract in sync with ~paramList in the state block below.
-SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 4.5, gate = 1, cutoff = 3000, pan = 0, ampScale = 1|
+SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 4.5, gate = 1, cutoff = 3000, pan = 0, ampScale = 1, fadeTime = 0.02|
 	var ampEnv = EnvGen.kr(
 		Env([0, 1, 1, 0], [atk, (dur - atk).max(0.001), rel], [\sin, \lin, \sin]),
 		doneAction: 2
 	);
-	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2); // \gate->0 = fast release
+	var killEnv = EnvGen.kr(Env.asr(0, 1, fadeTime), gate, doneAction: 2); // \gate->0 = fast release
 	var sig = LPF.ar(Saw.ar(freq), EnvGen.ar(Env.perc(0, 6)).linexp(0, 1, 50, 1000)) * ampEnv * killEnv * amp * ampScale;
 	sig = sig * SinOsc.ar(EnvGen.ar(Env.perc(0,6)) * 15, mul: 0.4, add: 1);
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
@@ -50,9 +52,9 @@ SynthDef(\sawCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 
 // Sibling voices: same arg contract as \sawCue, so any track can be routed to any of
 // them via tracks.txt. Distinct waveforms only -- stand-ins, not realistic instruments.
-SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.1, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
+SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.1, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1, fadeTime = 0.02|
 	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
-	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, fadeTime), gate, doneAction: 2);
 	var sig = LPF.ar(LPF.ar(Pulse.ar(freq, 0.35), freq * 6), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
@@ -64,21 +66,21 @@ SynthDef(\pulseCue, { |out = 0, freq = 440, amp = 0.1, dur = 1, atk = 0.005, rel
 // control CAPS that sweep (default 20000 = no cap), so an F3 cutoff curve can still
 // pull it lower. ~playCue passes the loaded buffer as `buf` (see ~violinTremBuf below);
 // like \metroCue it loops/plays the sample, not an oscillator.
-SynthDef(\tremCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.02, rel = 4.5, gate = 1, cutoff = 20000, pan = 0, ampScale = 1, buf = 0|
+SynthDef(\tremCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.02, rel = 4.5, gate = 1, cutoff = 20000, pan = 0, ampScale = 1, buf = 0, fadeTime = 0.02|
 	var base    = 392;                                              // sample fundamental ~ G4
 	var rate    = BufRateScale.kr(buf) * (freq / base);            // transpose to the note's pitch
 	var src     = PlayBuf.ar(2, buf, rate, loop: 1);               // loop so notes longer than the sample sustain
 	var attack  = (dur * 0.1).clip(atk, 0.4);                      // gentle attack, scales a little with dur
 	var ampEnv  = EnvGen.kr(Env.perc(attack, dur + rel), doneAction: 2);  // percussive, decay ~ dur
-	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);             // \gate->0 = fast cue-stop fade
+	var killEnv = EnvGen.kr(Env.asr(0, 1, fadeTime), gate, doneAction: 2);             // \gate->0 = fast cue-stop fade
 	var fc      = min(EnvGen.kr(Env([4000, 30], [dur + rel], \exp)), cutoff);            // 4 kHz -> 30 Hz over dur, capped by cutoff
 	var sig     = LPF.ar(src, fc.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
 	Out.ar(out, Balance2.ar(sig[0], sig[1], (pan + LFNoise1.kr(18, mul: 0.6)).clip(-1, 1)));
 }).add;
 
-SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1|
+SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel = 0.06, gate = 1, cutoff = 20000, pan = 0, ampScale = 1, fadeTime = 0.02|
 	var ampEnv  = EnvGen.kr(Env([0, 1, 1, 0], [atk, (dur - atk).max(0.001), rel], [\sin, \lin, \sin]), doneAction: 2);
-	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, fadeTime), gate, doneAction: 2);
 	var sig = LPF.ar(LFTri.ar(freq), cutoff.clip(20, 20000)) * ampEnv * killEnv * amp * ampScale;
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
@@ -96,11 +98,11 @@ SynthDef(\triCue, { |out = 0, freq = 440, amp = 0.2, dur = 1, atk = 0.005, rel =
 	var sustLevel = sharp.linexp(0, 1, 0.75, 0.4);
 	Env([0, 1, sustLevel, sustLevel, 0], [atk, dec, dur - atk - dec, rel], [\lin, \sin, \lin, -2]);
 };
-SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sharp=0.5, chaos=0, sat=0.3, pan=0, ampScale=0.5|
+SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sharp=0.5, chaos=0, sat=0.3, pan=0, ampScale=0.5, fadeTime=0.02|
 	var atk     = sharp.linexp(0, 1, 0.4, 0.002);
 	var ampEnv  = EnvGen.kr(~getAmpEnv.(sharp, rel, dur), doneAction: 2);
 
-	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, fadeTime), gate, doneAction: 2);
 	var fenv    = EnvGen.kr(Env.perc(0.001, 0.2 + (atk * 3)), gate);
 	// chaos-driven freq wiggle, evaluated twice for a decorrelated stereo pair
 	var wig     = { LFNoise2.kr(chaos.linexp(0, 1, 50, 300), mul: chaos * 0.25, add: 1) };
@@ -163,13 +165,13 @@ SynthDef(\velvetSawCue, { |out=0, freq=220, amp=0.2, dur=1, rel=0.3, gate=1, sha
 // holds for the full `dur` then releases over `rel` and self-frees; killEnv is
 // the separate fast cue-stop fade.
 SynthDef(\lorenzCue, {
-	|out=0, freq=440, amp=0.2, dur=1, gate=1, sharp=0.5, chaos=0, sat=0.3, rel=0.8, pan=0, ampScale=1|
+	|out=0, freq=440, amp=0.2, dur=1, gate=1, sharp=0.5, chaos=0, sat=0.3, rel=0.8, pan=0, ampScale=1, fadeTime=0.02|
 	var attack = sharp.linexp(0, 1, 0.4, 0.004);
 	var drive = 1 + (sat * 8);
 	var dynamicEnv = EnvGen.kr(
 		Env([0, 1, 1, 0], [attack, (dur - attack).max(0.001), rel], [\sin, \lin, -2]),
 		doneAction: 2);
-	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2); // \gate->0 = fast cue-stop fade
+	var killEnv = EnvGen.kr(Env.asr(0, 1, fadeTime), gate, doneAction: 2); // \gate->0 = fast cue-stop fade
 	var chaosEnv = EnvGen.kr(Env.perc(attack/3, chaos/2, chaos/2)) + (chaos / 3);
 	var lorenzDepth = chaosEnv * 500, lorenzRate = 5000;
 	var lorenzFreq = freq;
@@ -197,10 +199,10 @@ SynthDef(\lorenzCue, {
 // panned, audible with everything else); 1 => a MONO feed on output 3 (out + 2, e.g.
 // the conductor's click monitor, off the main mix). ~playCue passes the current
 // ~clickOut; toggle it with ~toggleClick.
-SynthDef(\metroCue, { |out = 0, freq = 440, amp = 1.0, dur = 1, gate = 1, pan = 0, ampScale = 1, blockBuf = 0, clickOut = 0|
+SynthDef(\metroCue, { |out = 0, freq = 440, amp = 1.0, dur = 1, gate = 1, pan = 0, ampScale = 1, blockBuf = 0, clickOut = 0, fadeTime = 0.02|
 	var rate    = BufRateScale.kr(blockBuf) * (freq / 440);   // 1x at A440, pitched by freq ratio
 	var sig     = PlayBuf.ar(2, blockBuf, rate, doneAction: 2);
-	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);   // \gate->0 = fast cue-stop fade
+	var killEnv = EnvGen.kr(Env.asr(0, 1, fadeTime), gate, doneAction: 2);   // \gate->0 = fast cue-stop fade
 	var mono;
 	sig  = sig * killEnv * amp * ampScale;
 	mono = (sig[0] + sig[1]) * 0.5;
@@ -227,15 +229,15 @@ SynthDef(\paramBus, { |out = 0|
 // of the cue. Two defs (mono / stereo) so either file kind plays correctly; ~playCue
 // picks by the buffer's channel count. `rate` defaults to 1 (BufRateScale corrects for
 // a sample-rate mismatch with the server).
-SynthDef(\cueFileMono, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, gate = 1, rate = 1|
+SynthDef(\cueFileMono, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, gate = 1, rate = 1, fadeTime = 0.02|
 	var sig     = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate, doneAction: 2);
-	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, fadeTime), gate, doneAction: 2);
 	sig = sig * killEnv * amp * ampScale;
 	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
 }).add;
-SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, gate = 1, rate = 1|
+SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, gate = 1, rate = 1, fadeTime = 0.02|
 	var sig     = PlayBuf.ar(2, buf, BufRateScale.kr(buf) * rate, doneAction: 2);
-	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, fadeTime), gate, doneAction: 2);
 	sig = sig * killEnv * amp * ampScale;
 	Out.ar(out, Balance2.ar(sig[0], sig[1], pan.clip(-1, 1)));
 }).add;
@@ -333,6 +335,7 @@ SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, ga
 ~playing         = nil;                       // (routine:, group:, index:)
 ~pendingClears   = 0;                         // clear-board (48) visual notes in the playing cue not yet fired
 ~clearChordDelta = 0.03;                      // s: a clear within this of a draw is "chorded" -> instant (no fade)
+~cueFadeDur      = 0.5;                        // s: fade-out time when a cue is stopped or interrupted (~stopCue)
 ~tempoEnvs       = Dictionary.new;
 ~defaultTempoEnv = Env([120, 120], [1]);      // held at 120 BPM for the whole cue
 ~tempoMul        = 1.0;                        // global tempo scale for PRACTICE (0.5 = half speed, 2 = double); takes effect next ~play
@@ -619,10 +622,13 @@ SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, ga
 		var g = ~playing[\group];
 		var buses = ~playing[\buses] ? [];
 		~playing[\routine].stop;
-		g.set(\gate, 0);                              // fade sounding voices, they self-free
+		// Set each voice's killEnv release to ~cueFadeDur, then drop the gate, so the
+		// sounding voices fade out over ~cueFadeDur (not the 0.02 s default) and self-free.
+		g.set(\fadeTime, ~cueFadeDur, \gate, 0);
 		// reap the (now empty) group and free its param buses together, after the
-		// fade -- freeing buses earlier could recycle an index the writer still drives.
-		SystemClock.sched(0.2, { g.free; buses.do(_.free); nil });
+		// fade -- freeing buses earlier could recycle an index the writer still drives,
+		// and freeing the group mid-fade would cut the fade short.
+		SystemClock.sched(~cueFadeDur + 0.1, { g.free; buses.do(_.free); nil });
 		~playing = nil;
 		// If the interrupted cue had a clear (48) signal -- one not yet fired, or
 		// one already fired and still mid-fade -- snap the board to cleared NOW
