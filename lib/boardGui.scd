@@ -170,6 +170,13 @@
 			(bounds.left + pad) @ (bounds.top + pad),
 			Font("Helvetica", fs, true),
 			Color.white.alpha_(0.9));
+		// In performance mode, a banner across the top while the cue number is shown.
+		if(~performanceMode == true) {
+			Pen.stringCenteredIn("PERFORMANCE MODE",
+				Rect(bounds.left, bounds.top + pad, bounds.width, fs),
+				Font("Helvetica", fs, true),
+				Color(1.0, 0.13, 0.13).alpha_(0.9));
+		};
 	};
 };
 
@@ -318,6 +325,11 @@
 		}
 		{ char == $q } {
 			~toggleCueNum.value;
+		}
+		// 'p': toggle performance mode (click -> output 3, refractory ~next lockout,
+		// "PERFORMANCE MODE" banner while the cue number is shown). Engine-side.
+		{ char == $p } {
+			~togglePerformanceMode !? { ~togglePerformanceMode.value };
 		}
 		// arrow keys shift the cursor without playing (Qt::Key_Left / _Right)
 		{ key == 16777234 } {

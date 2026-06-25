@@ -10,6 +10,7 @@
 // ============================================================================
 
 // --- SETUP: evaluate this one line once. Wait for "Ready." -------------------
+s.options.numOutputBusChannels_(4);
 this.executeFile("lib/setup.scd".resolveRelative);
 
 // --- Play ------------------------------------------------------------------

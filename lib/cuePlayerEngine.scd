@@ -302,6 +302,32 @@ SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, ga
 	"click track -> %".format(if(~clickOut == 0) { "main outputs 1/2" } { "output 3 (monitor)" }).postln;
 	~clickOut;
 };
+
+// PERFORMANCE MODE ('p' on the board). When ON: the click routes to output 3 (~clickOut
+// = 1, the click monitor) instead of the main 1/2 pair, the board draws a "PERFORMANCE
+// MODE" banner while the cue-number overlay is shown, and a REFRACTORY lockout throttles
+// ~next (spacebar) so an accidental double-tap can't skip a cue. Off in practice (default).
+//
+// The lockout after a ~next is  max(~refractoryPeriod, ~refractoryPercent * currentCueDur):
+// a fixed floor in seconds OR a proportion of the playing cue's window length, whichever
+// is longer. So a long cue gets a proportionally long guard, but every cue gets at least
+// ~refractoryPeriod. ~currentCueDur (the playing cue's window length in seconds) is set by
+// ~playCue; an open-ended whole-file cue contributes 0, so only the fixed floor applies.
+~performanceMode   = false;
+~refractoryPeriod  = 1.0;                     // seconds: the fixed floor of the ~next lockout
+~refractoryPercent = 0.0;                     // fraction of the current cue's duration added to the max
+~currentCueDur     = 0;                       // seconds: window length of the cue currently playing (~playCue sets it)
+~lastNextTime      = -inf;                    // Main.elapsedTime of the last accepted ~next (refractory clock)
+
+~togglePerformanceMode = {
+	~performanceMode = ~performanceMode.not;
+	~clickOut = if(~performanceMode) { 1 } { 0 };   // performance -> click monitor (output 3); practice -> main 1/2
+	"PERFORMANCE MODE %  (click -> %)".format(
+		if(~performanceMode) { "ON" } { "off" },
+		if(~clickOut == 0) { "main outputs 1/2" } { "output 3 (monitor)" }).postln;
+	if(~boardShowCueNum == true) { { ~boardDraw.value }.defer };   // refresh the banner
+	~performanceMode;
+};
 ~cues            = [];                       // [ (name:, file:, path:, startBeat:, endBeat:, notes:) ]
 ~cueIndex        = 0;                         // cursor: index of the cue ~next will play
 ~playing         = nil;                       // (routine:, group:, index:)
@@ -644,6 +670,9 @@ SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, ga
 		map = ~buildTimeMap.(env, maxBeat);
 		// Seconds from cue start to its window end (nil for an open-ended whole-file cue).
 		cueEndTime = if(cueLenBeats != inf) { ~beatToTime.(map, cueLenBeats) } { nil };
+		// Window length in seconds for the ~next refractory (0 for an open-ended cue,
+		// so only the fixed ~refractoryPeriod floor applies to it).
+		~currentCueDur = cueEndTime ? 0;
 
 		// Map each note's start/end beat through the integrated tempo curve, and
 		// resolve its track's role/target (which synth to play, or \visual board).
@@ -864,7 +893,22 @@ SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, ga
 	~playCue.(idx ? (id.asInteger - 1));   // no name match: id is a 1-based cue number
 };
 
-~next = ~playNext;
+// In performance mode, ignore a ~next that lands within the refractory lockout of the last
+// accepted one (an accidental double-tap would otherwise skip a cue). The lockout is
+// max(~refractoryPeriod, ~refractoryPercent * ~currentCueDur): a fixed floor in seconds OR
+// a proportion of the playing cue's window length, whichever is longer. Outside performance
+// mode there is no throttle. Auto-follow calls ~playNext directly, so it is never blocked.
+~next = {
+	var now     = Main.elapsedTime;
+	var lockout = ~refractoryPeriod.max((~refractoryPercent ? 0) * (~currentCueDur ? 0));
+	if(~performanceMode and: { (now - ~lastNextTime) < lockout }) {
+		"~next ignored: refractory (%.2f s left of %.2f s)".format(
+			lockout - (now - ~lastNextTime), lockout).postln;
+	} {
+		~lastNextTime = now;
+		~playNext.value;
+	};
+};
 
 // Move the cursor to a cue WITHOUT playing it (so the next ~next/~play starts
 // there). `id` is a cue NAME or, failing a name match, a 1-based cue number --

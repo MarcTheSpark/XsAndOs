@@ -7,8 +7,12 @@
 
 
 // STEP 1 -- start everything (do this ONCE per session, then wait for "Ready.")
-
+(
+s.options.numOutputBusChannels_(4);
 this.executeFile("lib/setup.scd".resolveRelative);
+)
+
+~toggleClick.();
 
 
 // STEP 2 -- play the piece
@@ -20,7 +24,7 @@ this.executeFile("lib/setup.scd".resolveRelative);
 
 // Practice slower (takes effect on the next cue)
 
-~tempoMul = 0.75;   // 75% speed
+~tempoMul = 0.5;   // 50% speed
 ~tempoMul = 1;      // back to full speed
 
 
