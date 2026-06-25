@@ -63,6 +63,16 @@ s.waitForBoot({
 	~setupMIDI.value;                             // open MIDI in + load saved bindings
 
 	~boardGui.(dimensions: 800@800, fullScreen: true);
+
+	// Optionally start in PERFORMANCE MODE (click -> output 3, ~next lockout, banner).
+	// The entry file sets ~startInPerformanceMode before executeFile'ing this file;
+	// we flip it here -- AFTER the engine loaded (which inits ~performanceMode = false)
+	// -- via the real toggle so the flag, click routing (~clickOut), and board banner
+	// all move together. Guarded by .not so a re-run doesn't toggle it back off.
+	if((~startInPerformanceMode == true) and: { ~performanceMode.not }) {
+		~togglePerformanceMode.value;
+	};
+
 	"Ready.  ~play / ~next / ~stop.".postln;
 });
 )
