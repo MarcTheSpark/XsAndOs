@@ -49,6 +49,7 @@ s.waitForBoot({
 
 	~midiDir = midiDir;                           // where the .mid source files live
 	~loadCueSheet.(cuesPath);                     // filenames resolve against ~midiDir
+	~loadCueSounds.value;                         // preload per-cue Cue<n>.wav files (sounds/), if any
 
 	~tempoEnvPath   = temposPath;
 	~otherCurvePath = otherCurvesPath;

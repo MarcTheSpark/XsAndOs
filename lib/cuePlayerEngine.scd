@@ -219,6 +219,27 @@ SynthDef(\paramBus, { |out = 0|
 	Out.kr(out, EnvGen.kr(\env.kr(Env.newClear(512))));
 }).add;
 
+// Per-cue whole-file players: a one-shot that plays an entire sound file once when
+// its cue starts (see ~cueBuffers / ~loadCueSounds below). Unlike the note voices
+// these are triggered ONCE per cue (not per note) and ignore pitch/dur -- they just
+// play the buffer through at its natural rate and self-free (PlayBuf doneAction 2).
+// killEnv keeps the fast cue-stop fade so ~stopCue's \gate->0 cuts them with the rest
+// of the cue. Two defs (mono / stereo) so either file kind plays correctly; ~playCue
+// picks by the buffer's channel count. `rate` defaults to 1 (BufRateScale corrects for
+// a sample-rate mismatch with the server).
+SynthDef(\cueFileMono, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, gate = 1, rate = 1|
+	var sig     = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate, doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	sig = sig * killEnv * amp * ampScale;
+	Out.ar(out, Pan2.ar(sig, pan.clip(-1, 1)));
+}).add;
+SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, gate = 1, rate = 1|
+	var sig     = PlayBuf.ar(2, buf, BufRateScale.kr(buf) * rate, doneAction: 2);
+	var killEnv = EnvGen.kr(Env.asr(0, 1, 0.02), gate, doneAction: 2);
+	sig = sig * killEnv * amp * ampScale;
+	Out.ar(out, Balance2.ar(sig[0], sig[1], pan.clip(-1, 1)));
+}).add;
+
 // Sample buffer for \metroCue (loaded once, here, since the engine is executeFile'd
 // only after the server has booted). ~playCue passes it to each \metroCue note.
 // Path resolves relative to lib/ (this file). Stereo file.
@@ -227,6 +248,43 @@ SynthDef(\paramBus, { |out = 0|
 // Sample buffer for \tremCue (the looping violin-tremolo voice), loaded once like
 // ~metroBlockBuf. ~playCue passes it to each \tremCue note as `buf`. Stereo file.
 ~violinTremBuf = Buffer.read(s, "sounds/violintrem.wav".resolveRelative);
+
+// ---------------------------------------------------------------------------
+// Per-cue whole-file playback. Each cue can have a sound file that plays in full
+// when the cue starts, named by its 1-based cue number: ~cueSoundDir/Cue<n>.wav
+// (e.g. "Cue1.wav" for cue 1, matching ~play's numbering / the score). Files are
+// preloaded once into ~cueBuffers (a Dictionary keyed by 1-based cue number -> Buffer;
+// missing cues simply have no entry), and ~playCue triggers the matching buffer in
+// the cue's group. Independent of the track/note system in tracks.txt -- a cue can
+// have BOTH a sound file and note tracks; they play together.
+// ---------------------------------------------------------------------------
+~cueSoundDir  = "sounds".resolveRelative;     // where Cue<n>.wav files live (relative to lib/)
+~cueSoundExts = ["wav", "aif", "aiff", "flac"]; // accepted extensions, tried in order
+~cueBuffers   = Dictionary.new;               // 1-based cue number -> Buffer
+~cueSoundAmp  = 1.0;                           // master level for cue files (separate from ~masterAmp;
+                                              // these are usually pre-mastered, so default full level)
+
+// Free any loaded cue-file buffers and forget them.
+~freeCueSounds = {
+	~cueBuffers.do(_.free);
+	~cueBuffers = Dictionary.new;
+};
+
+// Scan ~cueSoundDir for Cue<n>.<ext> for every cue number (1..~cues.size) and load
+// each one found into ~cueBuffers[n]. Frees any previously loaded set first. Call
+// AFTER the cues are loaded (so it knows how many to look for); re-run if you add files.
+~loadCueSounds = { |dir|
+	var d = (dir ? ~cueSoundDir).standardizePath;
+	~freeCueSounds.value;
+	(1..~cues.size).do({ |n|
+		var path = ~cueSoundExts.collect({ |ext| d +/+ "Cue%.%".format(n, ext) })
+			.detect({ |p| File.exists(p) });
+		path !? { ~cueBuffers[n] = Buffer.read(s, path) };
+	});
+	"loaded % cue sound file(s) from % (Cue<n>.wav for cues %)".format(
+		~cueBuffers.size, d, ~cueBuffers.keys.asArray.sort).postln;
+	~cueBuffers;
+};
 
 
 // ---------------------------------------------------------------------------
@@ -647,6 +705,16 @@ SynthDef(\paramBus, { |out = 0|
 		};
 
 		group = Group.new(s);
+
+		// Per-cue whole-file player: if this cue (1-based number index+1) has a
+		// preloaded Cue<n> sound file, start it now in the cue's group so it plays
+		// alongside the notes and is cut by ~stopCue's \gate->0 with the rest.
+		~cueBuffers[index + 1] !? { |buf|
+			Synth(if(buf.numChannels == 1) { \cueFileMono } { \cueFileStereo }, [
+				\buf, buf,
+				\amp, ~cueSoundAmp * ~cueVolumeFor.(index)
+			], group);
+		};
 
 		// F3 continuous params: one control bus + writer synth per (track, param)
 		// curve, keyed "track\tparam". Each writer plays the tempo-warped curve and
