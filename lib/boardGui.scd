@@ -51,6 +51,7 @@
 ~boardWin    = nil;                        // the Window, or nil if never opened
 ~boardView   = nil;                        // the UserView we draw the board onto, or nil
 ~boardSize   = 800@800;                     // fixed board size (a Point), drawn centered in the window
+~boardVCenter = ~boardVCenter ? 0.5;         // board's vertical position in the view, 0..1 (0=top, 0.5=centered, 1=bottom); kept if already set before load
 ~boardFullScreen = false;                  // true while the window is in fullscreen (Escape exits)
 ~boardFade   = 1.0;                        // mark opacity 0..1 (a clear-board note fades this 1->0)
 ~boardFadeRoutine = nil;                   // the running mark fade-out Routine, or nil
@@ -120,8 +121,9 @@
 // hidden); marks honor ~boardFade (the clear fade). Called on the GUI thread by the view.
 ~boardRender = { |bounds|
 	var bw = ~boardSize.x, bh = ~boardSize.y;        // fixed board size
-	var bx = (bounds.width  - bw) / 2;               // centered origin within the view
-	var by = (bounds.height - bh) / 2;
+	var bx = (bounds.width  - bw) / 2;               // horizontally centered origin within the view
+	// vertical position: ~boardVCenter only in fullscreen, otherwise plain centered
+	var by = (bounds.height - bh) * (if(~boardFullScreen == true) { ~boardVCenter } { 0.5 });
 	var m  = bw.min(bh) * 0.08;                      // inner margin of the board
 	var x0 = bx + m, y0 = by + m, x1 = bx + bw - m, y1 = by + bh - m;
 	var cw = (x1 - x0) / 3, ch = (y1 - y0) / 3;
@@ -305,8 +307,12 @@
 //   ~boardGui.()            -- default 800@800, windowed
 //   ~boardGui.(700@700)     -- different board size, windowed
 //   ~boardGui.(800@800, true) -- fullscreen (Escape to exit)
-~boardGui = { |dimensions, fullScreen = false|
+// `vCenter` sets the board's vertical position in the view (0..1; 0=top, 0.5=centered,
+// 1=bottom). Omit to keep the current ~boardVCenter (default 0.5). Settable live any time
+// via ~boardVCenter = 0.3 then ~boardDraw.().
+~boardGui = { |dimensions, fullScreen = false, vCenter|
 	~boardSize = dimensions ? (800@800);
+	vCenter !? { ~boardVCenter = vCenter };
 	~boardWin.notNil.if { ~boardWin.close };
 	~boardView = UserView().background_(Color.black).canFocus_(true);
 	~boardView.drawFunc = { |v| ~boardRender.(v.bounds) };
