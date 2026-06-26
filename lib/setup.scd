@@ -62,6 +62,8 @@ s.waitForBoot({
 	~midiMapPath = midiMapPath;
 	~setupMIDI.value;                             // open MIDI in + load saved bindings
 
+	~startMonitor.value;                          // persistent \monitorMix (main 1/2 -> output 3 click monitor)
+
 	~boardGui.(dimensions: 800@800, fullScreen: true);
 
 	// Optionally start in PERFORMANCE MODE (click -> output 3, ~next lockout, banner).

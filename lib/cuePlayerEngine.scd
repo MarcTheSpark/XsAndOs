@@ -199,15 +199,32 @@ SynthDef(\lorenzCue, {
 // panned, audible with everything else); 1 => a MONO feed on output 3 (out + 2, e.g.
 // the conductor's click monitor, off the main mix). ~playCue passes the current
 // ~clickOut; toggle it with ~toggleClick.
-SynthDef(\metroCue, { |out = 0, freq = 440, amp = 1.0, dur = 1, gate = 1, pan = 0, ampScale = 1, blockBuf = 0, clickOut = 0, fadeTime = 0.02|
+SynthDef(\metroCue, { |out = 0, freq = 440, amp = 1.0, dur = 1, gate = 1, pan = 0, ampScale = 1, blockBuf = 0, clickOut = 0, clickAmp = 1, fadeTime = 0.02|
 	var rate    = BufRateScale.kr(blockBuf) * (freq / 440);   // 1x at A440, pitched by freq ratio
 	var sig     = PlayBuf.ar(2, blockBuf, rate, doneAction: 2);
 	var killEnv = EnvGen.kr(Env.asr(0, 1, fadeTime), gate, doneAction: 2);   // \gate->0 = fast cue-stop fade
 	var mono;
-	sig  = sig * killEnv * amp * ampScale;
+	// clickAmp (~clickVolume) is a dedicated click-track level, separate from amp/
+	// ampScale so it isn't touched by velocity or an F3 amp curve mapped to ampScale.
+	sig  = sig * killEnv * amp * ampScale * clickAmp;
 	mono = (sig[0] + sig[1]) * 0.5;
 	Out.ar(out,     Balance2.ar(sig[0], sig[1], pan.clip(-1, 1)) * (1 - clickOut));  // main pair (out, out+1)
 	Out.ar(out + 2, (mono ! 2) * clickOut);                                               // click monitor (output 3)
+}).add;
+
+
+// Master output. All non-metro voices play into a PRIVATE stereo bus (~mainBus, see
+// below); this one persistent synth reads that bus and is the only thing that touches
+// the hardware: it sends the full mix to channels 1/2, and a ~monitorVolume-scaled
+// STEREO copy to channels 3/4 (the monitor/click feed). Using a private bus (rather
+// than In.ar on the hardware output buses) avoids the in/out bus-aliasing that bites
+// when numOutputBusChannels exceeds the device's real outputs. ONE synth at the TAIL of
+// the default group, so it reads the current block's sum of all the cue voices (which
+// run ahead of it). `amp` is the monitor send level, driven by ~setMonitorVolume.
+SynthDef(\masterOut, { |in = 0, amp = 0|
+	var sig = In.ar(in, 2);
+	Out.ar(0, sig);                          // main outputs 1/2 (full)
+	Out.ar(2, sig * Lag.kr(amp, 0.1));       // monitor send to channels 3/4 (lagged so changes don't click)
 }).add;
 
 
@@ -296,6 +313,31 @@ SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, ga
 ~masterAmp       = 0.25;
 ~ignoreVelocity  = true;                     // true => ignore MIDI velocity, play every note at full level (still scaled by ~masterAmp, cue levels, and amp curves)
 ~clickOut        = 0;                         // click-track (\metroCue) routing: 0 = main outputs 1/2, 1 = output 3 (click monitor); ~playCue reads it per note
+~clickVolume     = 0.75;                       // click-track (\metroCue) level, read per note; independent of ~masterAmp/velocity. Set freely; takes effect on the next click note.
+~monitorVolume   = 0.0;                        // monitor send level: how much of the main mix is copied (stereo) to channels 3/4 (the monitor/click feed). 0 = off. Set via ~setMonitorVolume to change it live; this is just the stored/initial value.
+
+// Private stereo bus every non-metro voice plays into; the \masterOut synth reads it and
+// is the only thing that writes the hardware outputs (see SynthDef above). ~playCue routes
+// note synths and per-cue file players to ~mainBus.index; the click (\metroCue) bypasses it.
+~mainBus = Bus.audio(s, 2);
+
+// The persistent \masterOut synth: reads ~mainBus, sends the full mix to channels 1/2 and a
+// ~monitorVolume-scaled stereo copy to channels 3/4. ~startMonitor (re)creates it at the TAIL
+// of the default group (so it reads the cue voices' current-block output); ~setMonitorVolume
+// changes the monitor send level live.
+~monitorSynth = nil;
+~startMonitor = {
+	fork {
+		s.sync;                               // ensure \masterOut is on the server before /s_new
+		~monitorSynth !? { ~monitorSynth.free };
+		~monitorSynth = Synth.tail(s, \masterOut, [\in, ~mainBus.index, \amp, ~monitorVolume]);
+	};
+};
+~setMonitorVolume = { |vol|
+	~monitorVolume = vol;
+	~monitorSynth !? { ~monitorSynth.set(\amp, vol) };
+	~monitorVolume;
+};
 
 // Toggle the click track between the main outputs 1/2 and output 3 (a separate click
 // monitor feed). Takes effect on the next click note played (like ~tempoMul).
@@ -747,7 +789,7 @@ SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, ga
 		~cueBuffers[index + 1] !? { |buf|
 			Synth(if(buf.numChannels == 1) { \cueFileMono } { \cueFileStereo }, [
 				\buf, buf,
-				\amp, ~cueSoundAmp * ~cueVolumeFor.(index)
+				\amp, ~cueSoundAmp * ~cueVolumeFor.(index), \out, ~mainBus.index
 			], group);
 		};
 
@@ -788,13 +830,16 @@ SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, ga
 					var syn, args = [
 						\freq, ev[\midinote].midicps,
 						\amp,  ~masterAmp * (if(~ignoreVelocity == true) { 1 } { (ev[\vel] / 127).squared }) * ~cueVolumeFor.(index),
-						\dur,  ev[\dur]
+						\dur,  ev[\dur],
+						// non-metro voices play into the private main bus (read by \masterOut);
+						// the click bypasses it and writes the hardware directly (its own clickOut routing).
+						\out,  if(ev[\target] == \metroCue) { 0 } { ~mainBus.index }
 					];
 					// \metroCue is a sample player: hand it the loaded block buffer, which
 					// it plays back pitched by the note's freq (1x at A440), plus the current
 					// click-track routing (~clickOut: main 1/2 vs output 3 -- see ~toggleClick).
 					if(ev[\target] == \metroCue) {
-						args = args ++ [\blockBuf, ~metroBlockBuf, \clickOut, ~clickOut];
+						args = args ++ [\blockBuf, ~metroBlockBuf, \clickOut, ~clickOut, \clickAmp, ~clickVolume];
 					};
 					// \tremCue loops the violin-tremolo sample: hand it that buffer as `buf`.
 					if(ev[\target] == \tremCue) {

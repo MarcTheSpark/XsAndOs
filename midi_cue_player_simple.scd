@@ -27,6 +27,12 @@ this.executeFile("lib/setup.scd".resolveRelative);
 ~tempoMul = 1;      // back to full speed
 
 
+// Levels (defaults: click 0.75, monitor 0)
+
+~clickVolume = 0.75;        // click-track volume (takes effect on the next click note)
+~setMonitorVolume.(0);      // how much of the main mix is sent to the monitor (channels 3/4); 0 = off
+
+
 // Set up a foot pedal / MIDI button (optional) -- run a line, then press the pedal
 
 ~learnMIDINext.(true);   // bind the pedal to "next"
