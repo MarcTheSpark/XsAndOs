@@ -25,6 +25,7 @@ lib/sounds/
 *.aiff
 *.mp3
 *.ogg
+*.zip
 
 # Python bytecode
 __pycache__/
@@ -34,6 +35,7 @@ __pycache__/
 reaper/AutoSaves/
 reaper/Backups/
 reaper/Media/
+reaper/**/Media/
 reaper/old/
 *.rpp-bak
 
