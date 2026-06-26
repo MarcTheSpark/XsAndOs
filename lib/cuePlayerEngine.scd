@@ -207,7 +207,7 @@ SynthDef(\metroCue, { |out = 0, freq = 440, amp = 1.0, dur = 1, gate = 1, pan = 
 	sig  = sig * killEnv * amp * ampScale;
 	mono = (sig[0] + sig[1]) * 0.5;
 	Out.ar(out,     Balance2.ar(sig[0], sig[1], pan.clip(-1, 1)) * (1 - clickOut));  // main pair (out, out+1)
-	Out.ar(out + 2, mono * clickOut);                                               // click monitor (output 3)
+	Out.ar(out + 2, (mono ! 2) * clickOut);                                               // click monitor (output 3)
 }).add;
 
 
