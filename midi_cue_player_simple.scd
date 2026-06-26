@@ -11,6 +11,9 @@
 s.options.outDevice = "Click Setup";
 s.options.numOutputBusChannels_(4);
 ~startInPerformanceMode = true;    // start in performance mode (click -> output 3)
+~boardVCenter = 0;    // board vertical position: 0 = top, 0.5 = centered, 1 = bottom
+~clickVolume = 0.75;        // click-track volume (takes effect on the next click note)
+~monitorVolume = 0.5;      // how much of the main mix is sent to the monitor (channels 3/4); 0 = off
 this.executeFile("lib/setup.scd".resolveRelative);
 )
 

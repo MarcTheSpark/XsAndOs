@@ -313,8 +313,8 @@ SynthDef(\cueFileStereo, { |out = 0, buf = 0, amp = 1, ampScale = 1, pan = 0, ga
 ~masterAmp       = 0.25;
 ~ignoreVelocity  = true;                     // true => ignore MIDI velocity, play every note at full level (still scaled by ~masterAmp, cue levels, and amp curves)
 ~clickOut        = 0;                         // click-track (\metroCue) routing: 0 = main outputs 1/2, 1 = output 3 (click monitor); ~playCue reads it per note
-~clickVolume     = 0.75;                       // click-track (\metroCue) level, read per note; independent of ~masterAmp/velocity. Set freely; takes effect on the next click note.
-~monitorVolume   = 0.0;                        // monitor send level: how much of the main mix is copied (stereo) to channels 3/4 (the monitor/click feed). 0 = off. Set via ~setMonitorVolume to change it live; this is just the stored/initial value.
+~clickVolume     = ~clickVolume ? 0.75;        // click-track (\metroCue) level, read per note; independent of ~masterAmp/velocity. Set freely; takes effect on the next click note. If already set before the engine loads, that value is kept (not overwritten).
+~monitorVolume   = ~monitorVolume ? 0.0;       // monitor send level: how much of the main mix is copied (stereo) to channels 3/4 (the monitor/click feed). 0 = off. Set via ~setMonitorVolume to change it live; this is just the stored/initial value. If already set before the engine loads, that value is kept (not overwritten).
 
 // Private stereo bus every non-metro voice plays into; the \masterOut synth reads it and
 // is the only thing that writes the hardware outputs (see SynthDef above). ~playCue routes
