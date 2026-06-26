@@ -8,6 +8,7 @@
 
 // STEP 1 -- start everything (do this ONCE per session, then wait for "Ready.")
 (
+s.options.outDevice = "Click Setup";
 s.options.numOutputBusChannels_(4);
 ~startInPerformanceMode = true;    // start in performance mode (click -> output 3)
 this.executeFile("lib/setup.scd".resolveRelative);
