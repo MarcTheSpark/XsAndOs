@@ -1,0 +1,1169 @@
+<REAPER_PROJECT 0.1 "7.69/linux-x86_64" 1782478421 0
+  <NOTES 0 2
+  >
+  RIPPLE 0 1
+  GROUPOVERRIDE 0 0 0 0
+  AUTOXFADE 129
+  ENVATTACH 3
+  POOLEDENVATTACH 0
+  TCPUIFLAGS 0
+  MIXERUIFLAGS 11 48
+  ENVFADESZ10 40
+  PEAKGAIN 1
+  FEEDBACK 0
+  PANLAW 1
+  PROJOFFS 0 0 0
+  MAXPROJLEN 0 0
+  GRID 3198 8 1 8 1 0 1 0
+  TIMEMODE 1 9 -1 60 0 0 -1 0
+  VIDEO_CONFIG 1920 1080 1282
+  PANMODE 3
+  PANLAWFLAGS 3
+  CURSOR 182.43806698426894
+  ZOOM 17.74701176398509 2495 0
+  VZOOMEX 0 0
+  USE_REC_CFG 0
+  RECMODE 1
+  SMPTESYNC 0 30 100 40 1000 300 0 0 1 0 0
+  LOOP 0
+  LOOPGRAN 0 4
+  RECORD_PATH "Media" ""
+  <RECORD_CFG
+    ZXZhdxgAAQ==
+  >
+  <APPLYFX_CFG
+  >
+  RENDER_FILE "/home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds//Cue28.wav"
+  RENDER_FMT 0 2 44100
+  RENDER_1X 0
+  RENDER_RANGE 2 0 0 0 1000
+  RENDER_RESAMPLE 3 0 1
+  RENDER_ADDTOPROJ 0
+  RENDER_STEMS 0
+  RENDER_DITHER 0
+  RENDER_TRIM 0.000001 0.000001 0 0
+  TIMELOCKMODE 1
+  TEMPOENVLOCKMODE 1
+  ITEMMIX 1
+  DEFPITCHMODE 589824 0
+  TAKELANE 1
+  SAMPLERATE 44100 0 0
+  <RENDER_CFG
+    ZXZhdxgAAQ==
+  >
+  LOCK 1
+  <METRONOME 6 2
+    VOL 0.25 0.125
+    BEATLEN 4
+    FREQ 1760 880 1
+    SAMPLES "" "" "" ""
+    SPLIGNORE 0 0
+    SPLDEF 2 660 "" 0 ""
+    SPLDEF 3 440 "" 0 ""
+    PATTERN 0 169
+    PATTERNSTR ABBB
+    MULT 1
+  >
+  GLOBAL_AUTO -1
+  TEMPO 120 4 4 0
+  PLAYRATE 1 1 0.25 4
+  SELECTION 182.43806698426894 194.59119623596959
+  SELECTION2 182.43806698426894 194.59119623596959
+  MASTERAUTOMODE 0
+  MASTERTRACKHEIGHT 0 0
+  MASTERPEAKCOL 16576
+  MASTERMUTESOLO 0
+  MASTERTRACKVIEW 0 0.6667 0.5 0.5 0 0 0 0 0 0 0 0 0 0 1
+  MASTERHWOUT 0 0 1 0 0 0 0 -1
+  MASTER_NCH 2 2
+  MASTER_VOLUME 1 0 -1 -1 1
+  MASTER_PANMODE 3
+  MASTER_PANLAWFLAGS 3
+  MASTER_FX 1
+  MASTER_SEL 0
+  <MASTERPLAYSPEEDENV
+    EGUID {B9469C0E-D2FC-FE44-99F1-5C45479F4E0C}
+    ACT 0 -1
+    VIS 0 1 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 0 -1 -1
+  >
+  <TEMPOENVEX
+    EGUID {56DEA6BA-4D29-88D5-9876-5D602DD0C332}
+    ACT 0 -1
+    VIS 1 0 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 1 -1 -1
+  >
+  RULERHEIGHT 95 86
+  RULERLANE 1 4 "" 0 -1
+  RULERLANE 2 8 "" 0 -1
+  MARKER 1 182.43806698426894 "" 0 0 1 B {92D934F1-F22D-3BFC-B65F-BB5A45BA63F5} 0 2
+  <PROJBAY
+  >
+  <TRACK {35CC0B13-B0AD-B6B7-687E-BF9B0D762381}
+    NAME Cue5
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 1
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 418 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {35CC0B13-B0AD-B6B7-687E-BF9B0D762381}
+    PERF 0
+    MIDIOUT -1
+    MAINSEND 1 0
+    <VOLENV2
+      EGUID {1E2276F4-6E50-D294-4F19-62362995EDDC}
+      ACT 1 -1
+      VIS 1 1 1
+      LANEHEIGHT 0 0
+      ARM 1
+      DEFSHAPE 0 -1 -1
+      VOLTYPE 1
+      PT 0 1 0
+      PT 179.76042588 1 0
+      PT 179.76092588 1 0
+      PT 180.47825909 1 0
+    >
+    <ITEM
+      POSITION 0.92947579699103
+      SNAPOFFS 0
+      LENGTH 5.31600907029478
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {2F5B6E81-133B-D023-8D64-C57796FFDBB0}
+      IID 1288
+      NAME Cue5.wav
+      VOLPAN 1 0 1.916223 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {BF48EF43-BAD3-186E-BEEB-AEF4789F3D9C}
+      <SOURCE WAVE
+        FILE "Media/Cue5.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue5.wav
+      >
+    >
+    <ITEM
+      POSITION 6.24548486724962
+      SNAPOFFS 0
+      LENGTH 5.17301587301587
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {FCEF2CB3-5701-A742-1C50-C12CC1BC0D42}
+      IID 1289
+      NAME Cue9.wav
+      VOLPAN 1 0 1.916223 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {F232DCA3-7AFF-BDA8-5F4A-B6B9AA972967}
+      <SOURCE WAVE
+        FILE "Media/Cue9.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue9.wav
+      >
+    >
+    <ITEM
+      POSITION 11.4185007403139
+      SNAPOFFS 0
+      LENGTH 2.85981859410431
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {E0882BD8-B695-ED20-5312-ADBB34581F50}
+      IID 1290
+      NAME Cue10.wav
+      VOLPAN 1 0 1.916223 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {820A9629-6E9B-B680-1F79-E0D9EBAAC38F}
+      <SOURCE WAVE
+        FILE "Media/Cue10.wav"
+      >
+      <VOLENV
+        EGUID {841A7E07-6290-9764-1DFB-5DE0267DEB01}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT 0 1.9498446 0
+        PT 1.46080085 1.9498446 0
+        PT 2.76151035 0 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue10.wav
+      >
+    >
+    <ITEM
+      POSITION 14.27831933437847
+      SNAPOFFS 0
+      LENGTH 2.76569160997732
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {EC94C40E-0EC1-CFF9-7BA0-225514FA2D82}
+      IID 1291
+      NAME Cue11.wav
+      VOLPAN 1 0 1.916223 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {E3F8E06A-509A-8E8E-90EF-76C16CE56AF7}
+      <SOURCE WAVE
+        FILE "Media/Cue11.wav"
+      >
+      <VOLENV
+        EGUID {C94D4CDA-B3A3-B678-BAB1-A5936184DA9A}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT 0 0.74131024 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue11.wav
+      >
+    >
+    <ITEM
+      POSITION 17.04401094443165
+      SNAPOFFS 0
+      LENGTH 2.64081632653061
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {F73BDC13-A40B-404D-62F6-4690C475E0EB}
+      IID 1292
+      NAME Cue12.wav
+      VOLPAN 1 0 1.916223 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {1BF9E9CC-704D-3086-C82E-A4A67462094A}
+      <SOURCE WAVE
+        FILE "Media/Cue12.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue12.wav
+      >
+    >
+    <ITEM
+      POSITION 19.68482727091759
+      SNAPOFFS 0
+      LENGTH 2.98775510204082
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {0B0853A7-AAED-276E-386D-167C3D4DC1FA}
+      IID 1293
+      NAME Cue13.wav
+      VOLPAN 1 0 1.916223 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {CAE7BF59-2F8A-3A42-184E-EB5729A0BBD1}
+      <SOURCE WAVE
+        FILE "Media/Cue13.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue13.wav
+      >
+    >
+    <ITEM
+      POSITION 22.67258237290662
+      SNAPOFFS 0
+      LENGTH 5.52206349206349
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {E35C1F4F-CB8B-C42C-5C4F-C8A0D835D73E}
+      IID 1294
+      NAME Cue14.wav
+      VOLPAN 1 0 1.916223 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {1A4AC1EC-C92B-81CB-3357-BEE075AAE521}
+      <SOURCE WAVE
+        FILE "Media/Cue14.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue14.wav
+      >
+    >
+    <ITEM
+      POSITION 28.19464586500544
+      SNAPOFFS 0
+      LENGTH 6.15845804988662
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {B451BE29-FE1E-ED8E-2985-AFA67F3F041C}
+      IID 1295
+      NAME Cue15.wav
+      VOLPAN 1 0 1.916223 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {4F84B1E5-3C91-2A42-918B-78EE307D55A7}
+      <SOURCE WAVE
+        FILE "Media/Cue15.wav"
+      >
+      <VOLENV
+        EGUID {FCBCFBCF-5B2A-64C8-0092-5C492DFEC2FD}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT 0 2.23872114 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue15.wav
+      >
+    >
+    <ITEM
+      POSITION 34.35310391488019
+      SNAPOFFS 0
+      LENGTH 6.14410430839002
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {03CA5150-C810-057E-E891-52CC8A7ECCD5}
+      IID 1296
+      NAME Cue16.wav
+      VOLPAN 1 0 3.037386 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {419037CF-A1BE-AA73-5088-231A10EF3D66}
+      <SOURCE WAVE
+        FILE "Media/Cue16.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue16.wav
+      >
+    >
+    <ITEM
+      POSITION 40.49720822332893
+      SNAPOFFS 0
+      LENGTH 2.77514739229025
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {95A15032-111D-A84C-EA19-9CB839630C10}
+      IID 1297
+      NAME Cue17.wav
+      VOLPAN 1 0 3.823843 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {B626F24E-9BF1-D0C0-3B83-7F6C4A67BAAE}
+      <SOURCE WAVE
+        FILE "Media/Cue17.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue17.wav
+      >
+    >
+    <ITEM
+      POSITION 43.27235561562702
+      SNAPOFFS 0
+      LENGTH 2.75340136054422
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {83411E09-5D90-C882-1FB0-988B828C6DB9}
+      IID 1298
+      NAME Cue18.wav
+      VOLPAN 1 0 3.823843 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {20884892-39C2-CB3A-C345-1389BCAC52A7}
+      <SOURCE WAVE
+        FILE "Media/Cue18.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue18.wav
+      >
+    >
+    <ITEM
+      POSITION 46.02575697610155
+      SNAPOFFS 0
+      LENGTH 2.38027210884354
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {B0AC6C6D-21F8-6B5D-9D7E-5FF364A8BF56}
+      IID 1299
+      NAME Cue19.wav
+      VOLPAN 1 0 3.037386 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {0876E918-D47A-7FDD-E528-441531C20176}
+      <SOURCE WAVE
+        FILE "Media/Cue19.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue19.wav
+      >
+    >
+    <ITEM
+      POSITION 48.4060290849302
+      SNAPOFFS 0
+      LENGTH 1.34770975056689
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {29C4EAE0-5DE7-5EAE-799D-681620966F70}
+      IID 1300
+      NAME Cue20.wav
+      VOLPAN 1 0 3.037386 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {E738A94D-53AD-E276-510B-C2CEC4C27A8D}
+      <SOURCE WAVE
+        FILE "Media/Cue20.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue20.wav
+      >
+    >
+    <ITEM
+      POSITION 49.7537388355704
+      SNAPOFFS 0
+      LENGTH 0.99140589569161
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {55588FA4-B7BA-C3D3-E665-8770C7E696BA}
+      IID 1301
+      NAME Cue21.wav
+      VOLPAN 1 0 3.037386 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {9B6D6C1E-3D1B-DDC9-2B91-285B35DBAAC9}
+      <SOURCE WAVE
+        FILE "Media/Cue21.wav"
+      >
+      <VOLENV
+        EGUID {C2E42449-6673-4B0B-4F36-490661D5FB62}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT 0 1 0
+        PT 0.76359362 1 0
+        PT 0.9914059 0.00003715 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue21.wav
+      >
+    >
+    <ITEM
+      POSITION 50.74514473124873
+      SNAPOFFS 0
+      LENGTH 4.67079365079365
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {DD0EE2CE-0AEF-A167-4B06-C900D24FE22C}
+      IID 1302
+      NAME Cue22.wav
+      VOLPAN 1 0 3.037386 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {34B3653B-1DED-A880-5B2F-B0D5975D86A5}
+      <SOURCE WAVE
+        FILE "Media/Cue22.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue22.wav
+      >
+    >
+    <ITEM
+      POSITION 55.41593838203698
+      SNAPOFFS 0
+      LENGTH 3.24886621313636
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {A2BC3FFD-7F1D-AA2F-85D7-F0FA65114A69}
+      IID 1303
+      NAME Cue23.wav
+      VOLPAN 1 0 1.916223 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {DF55A53F-B2BE-279A-F60D-159998BD8821}
+      <SOURCE WAVE
+        FILE "Media/Cue23.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue23.wav
+      >
+    >
+    <ITEM
+      POSITION 58.66480459517334
+      SNAPOFFS 0
+      LENGTH 24.8290022675737
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {4234C647-7069-6328-815C-48BA7E65044B}
+      IID 1304
+      NAME Cue24.wav
+      VOLPAN 1 0 0.501187 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {00B13FEA-F509-BD1D-7D17-C476742FAEBC}
+      <SOURCE WAVE
+        FILE "Media/Cue24.wav"
+      >
+      <VOLENV
+        EGUID {A6FE1CB5-7D62-852A-EF8A-4143424A744E}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT 0 0.83176377 0
+        PT 9.45142613 0.9332543 0
+        PT 13.006553 1.07151931 0
+        PT 24.21636853 1.28824955 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue24.wav
+      >
+    >
+    <ITEM
+      POSITION 83.49380686273798
+      SNAPOFFS 0
+      LENGTH 24.8543537414966
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {219BB3F6-CFF9-E31C-B830-EF37BA9D4CEE}
+      IID 1305
+      NAME Cue25.wav
+      VOLPAN 1 0 0.501187 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {E499DE93-EAE8-290D-6855-0B5340885970}
+      <SOURCE WAVE
+        FILE "Media/Cue25.wav"
+      >
+      <VOLENV
+        EGUID {284DE294-5E79-C931-936A-7EC84773D5BA}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT 0 0.87096359 0
+        PT 24.85435374 1.41253754 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue25.wav
+      >
+    >
+    <ITEM
+      POSITION 108.34816060424782
+      SNAPOFFS 0
+      LENGTH 26.76537414965986
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {D52C2F54-A397-5564-8ED4-2A95C3EA9A5F}
+      IID 1306
+      NAME Cue26.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {D941F0A2-7DE5-4121-7EDC-C1A73E28996C}
+      <SOURCE WAVE
+        FILE "Media/Cue26.wav"
+      >
+      <VOLENV
+        EGUID {C9A0740B-4AFD-B5B1-08F9-BC2F1BA5990A}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT 0 0.74131024 0
+        PT 12.87249491 0.74131024 0
+        PT 22.67547385 0.81283052 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue26.wav
+      >
+    >
+    <ITEM
+      POSITION 135.11353475390933
+      SNAPOFFS 0
+      LENGTH 30.70573617396266
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0.01 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {BE9FB20C-F11B-2100-DBA8-D7F077AAB14A}
+      IID 1307
+      NAME Cue27.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {736EE429-E89C-8373-55DC-198C2E99BAEF}
+      <SOURCE WAVE
+        FILE "Media/Cue27.wav"
+      >
+      <VOLENV
+        EGUID {600A9987-A5BE-4607-D31A-130294C8DD88}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT 0 0.85113804 0
+        PT 27.95617177 0.85113804 0
+        PT 30.15372483 0.85113804 0
+        PT 30.70573617 0.85113804 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue27.wav
+      >
+    >
+    <ITEM
+      POSITION 165.819270927872
+      SNAPOFFS 0
+      LENGTH 7.63045079985599
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0.01 0 1 0 0 0
+      FADEOUT 1.1 0.01 0.55068004224694 1 1 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {E04A49D5-7748-AE8B-755C-83912A91089B}
+      IID 1307
+      NAME Cue27.wav
+      VOLPAN 1 0 0.636541 -1
+      SOFFS 30.70573617396266
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {C505F7A0-0A4A-8803-6011-487356E9028C}
+      <SOURCE WAVE
+        FILE "Media/Cue27.wav"
+      >
+      <VOLENV
+        EGUID {684E8CFD-C898-DF1C-C456-4891B61EE731}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT 0 0.85113804 0
+        PT 6.66047049 0.85113804 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue27.wav
+      >
+    >
+    <ITEM
+      POSITION 172.89904168548105
+      SNAPOFFS 0
+      LENGTH 0.71733321292695
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1.1 0.01 0.55068004224694 1 1 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {86051CA4-F561-D6B6-5E36-FEABBF6FCBE1}
+      IID 1307
+      NAME Cue27.wav
+      VOLPAN 1 0 0.630957 -1
+      SOFFS 37.78550693157172
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {677EA2CA-0080-4C4B-756A-5C629DFEAAE8}
+      <SOURCE WAVE
+        FILE "Media/Cue27.wav"
+      >
+      <TAKEFX
+        WNDRECT 32 109 949 607
+        SHOW 0
+        LASTSEL 0
+        DOCKED 0
+        BYPASS 0 0 0
+        <VST "VST: ReaVerb (Cockos)" reaverb.vst.so 0 "" 1919252066<56535472657662726561766572620000> ""
+          YnZlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+          AAAQwfWlJz8AAIA/AAAAAAAAgD8AAIA/AAAAPwAAgD8AAIA/AAAAQFZFUkJHRU4AGAAAAAAAAAB5U5hFAACAPzSEt0IAAEhCAACAPw==
+          AFByb2dyYW0gMQAQAAAA
+        >
+        FLOATPOS 0 0 0 0
+        FXID {75047416-9449-1DDE-EBF0-88C022A3FF36}
+        WAK 0 0
+      >
+      <VOLENV
+        EGUID {33E13C9B-9E6E-111E-E080-4C338D68A014}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT -0.41930027 0.85113804 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue27.wav
+      >
+    >
+    <ITEM
+      POSITION 182.43806698426894
+      SNAPOFFS 0
+      LENGTH 1.36534391700201
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1.1 0.18357903652335 0 1 0 0 0
+      FADEOUT 1.1 0 0.78531032290522 1 1 0 0
+      MUTE 0 0
+      SEL 1
+      IGUID {3C672055-037C-FA79-5E63-4C26BFE96421}
+      IID 1307
+      NAME Cue27.wav
+      VOLPAN 1 0 0.630957 -1
+      SOFFS 38.60515998327719
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {B0E0DC6F-5B62-D896-4444-3ABE2CD69CA9}
+      <SOURCE WAVE
+        FILE "Media/Cue27.wav"
+      >
+      <TAKEFX
+        WNDRECT 32 109 949 607
+        SHOW 0
+        LASTSEL 0
+        DOCKED 0
+        BYPASS 0 0 0
+        <VST "VST: ReaVerb (Cockos)" reaverb.vst.so 0 "" 1919252066<56535472657662726561766572620000> ""
+          YnZlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+          AAAQwfWlJz8AAIA/AAAAAAAAgD8AAIA/AAAAPwAAgD8AAIA/AAAAQFZFUkJHRU4AGAAAAAAAAAB5U5hFAACAPzSEt0IAAEhCAACAPw==
+          AFByb2dyYW0gMQAQAAAA
+        >
+        FLOATPOS 0 0 0 0
+        FXID {2B5B36B0-D93D-4F95-1DCD-79AB2018DEAF}
+        WAK 0 0
+      >
+      <VOLENV
+        EGUID {8A96F790-285A-64DB-7E02-E37D8AA0C52B}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT -1.23895332 0.85113804 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue27.wav
+      >
+    >
+    <ITEM
+      POSITION 183.01810057836573
+      SNAPOFFS 0
+      LENGTH 11.57309565760386
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1.1 0 0.78531032290522 1 1 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 1
+      IGUID {448C7BDB-6F54-0CFA-194A-90AB92024169}
+      IID 1308
+      NAME Cue28.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0.58003359409679
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {E4A1C824-93BB-E100-8198-31A7308F703C}
+      <SOURCE WAVE
+        FILE "Media/Cue28.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue28.wav
+      >
+    >
+    <ITEM
+      POSITION 194.59119623594276
+      SNAPOFFS 0
+      LENGTH 7.94278911564629
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {86066250-714A-A89E-3801-A5F15333BC40}
+      IID 1309
+      NAME Cue29.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {7E091151-43F3-290B-7B66-E44ECBDEE23C}
+      <SOURCE WAVE
+        FILE "Media/Cue29.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue29.wav
+      >
+    >
+    <ITEM
+      POSITION 202.53398535165294
+      SNAPOFFS 0
+      LENGTH 5.88473922902494
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {BD31E484-2655-2D17-21FB-5340800342D0}
+      IID 1310
+      NAME Cue30.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {32DC0437-D0F2-C293-E978-FBD5FFC42E52}
+      <SOURCE WAVE
+        FILE "Media/Cue30.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue30.wav
+      >
+    >
+    <ITEM
+      POSITION 208.41872458064287
+      SNAPOFFS 0
+      LENGTH 7.613514739229
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {179EDA26-15E5-094B-9AD0-FD9CE7EAA0A6}
+      IID 1311
+      NAME Cue31.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {D2FE57B4-78F3-89A2-2F21-A6C4F26B5145}
+      <SOURCE WAVE
+        FILE "Media/Cue31.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue31.wav
+      >
+    >
+    <ITEM
+      POSITION 216.032239319848
+      SNAPOFFS 0
+      LENGTH 7.67752834467123
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {A86E16E4-D40D-746F-E6EE-F6DFA578CE2C}
+      IID 1312
+      NAME Cue32.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {8F4085BC-873F-8FDB-7F78-0140029D987B}
+      <SOURCE WAVE
+        FILE "Media/Cue32.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue32.wav
+      >
+    >
+    <ITEM
+      POSITION 223.70976766452483
+      SNAPOFFS 0
+      LENGTH 5.64444444444439
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {24846CDB-1D89-AA36-0BED-B808F3684488}
+      IID 1313
+      NAME Cue33.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {F63E70AC-B29D-3FF0-A334-6F5DD8C4D241}
+      <SOURCE WAVE
+        FILE "Media/Cue33.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue33.wav
+      >
+    >
+    <ITEM
+      POSITION 229.35421210897445
+      SNAPOFFS 0
+      LENGTH 6.4199319727891
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {FB35B94D-608F-D4E3-5BBB-CDE060565D97}
+      IID 1314
+      NAME Cue34.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {955AF237-1350-EC5D-D076-C3B71664B660}
+      <SOURCE WAVE
+        FILE "Media/Cue34.wav"
+      >
+      <VOLENV
+        EGUID {1A1DC832-E505-5090-2AC0-3915926806E0}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        VOLTYPE 1
+        PT 0 1 0
+        PT 5.7527554 1 0
+        PT 6.17090765 0.35017711 0
+        PT 6.41993197 0 0
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue34.wav
+      >
+    >
+    <ITEM
+      POSITION 235.77414408172305
+      SNAPOFFS 0
+      LENGTH 21.62716553287984
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {F9DB0034-BEC1-256F-C758-82A9782740F1}
+      IID 1315
+      NAME Cue35.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {FBE6F788-2781-2017-231A-6F078F3A3E7E}
+      <SOURCE WAVE
+        FILE "Media/Cue35.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue35.wav
+      >
+    >
+    <ITEM
+      POSITION 257.40130961462688
+      SNAPOFFS 0
+      LENGTH 14.18460317460324
+      LOOP 0
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {D7FE664F-CBD7-4F54-3A3A-36A8552F78D0}
+      IID 1316
+      NAME Cue36.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {5F699414-7317-7E2A-7E44-0ECA147E2F51}
+      <SOURCE WAVE
+        FILE "Media/Cue36.wav"
+      >
+      <EXT
+        ORIGINAL_FILENAME /home/marc/Nextcloud/Compositions/Splice2026/SuperCollider/lib/sounds/Cue36.wav
+      >
+    >
+  >
+  <TRACK {88BD8C57-74CD-5313-CC98-EC2FC39BBB06}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {88BD8C57-74CD-5313-CC98-EC2FC39BBB06}
+    PERF 0
+    MIDIOUT -1
+    MAINSEND 1 0
+  >
+  <TRACK {7557BCE5-301E-2135-337E-335E4B13530B}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {7557BCE5-301E-2135-337E-335E4B13530B}
+    PERF 0
+    MIDIOUT -1
+    MAINSEND 1 0
+  >
+  <EXTENSIONS
+  >
+>

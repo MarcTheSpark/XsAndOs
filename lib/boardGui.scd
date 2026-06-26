@@ -37,11 +37,15 @@
 ~boardFadeOutPitch = 49;                   // fade the GRID out (lines disappear)
 ~boardFadeInPitch  = 47;                   // fade the GRID in (lines appear)
 
-// state: 9 cells, each (player: 0|1|2, win: bool); player 0 == empty.
-~boardState  = Array.fill(9, { (player: 0, win: false) });
-~boardNewest = [];                        // indices of the most recent move(s) -- all drawn bold. A
-                                          // collection so simultaneously-drawn marks (a chord) stay bold
-                                          // together until the NEXT (non-simultaneous) move replaces them.
+// state: 9 cells, each holds BOTH players independently so an X and an O can occupy
+// the same square at once (e.g. drawn in the same chord). p1/p2 = is that player's
+// mark present; p1win/p2win = is it a winning cell. An empty cell has both off.
+~boardState  = Array.fill(9, { (p1: false, p1win: false, p2: false, p2win: false) });
+~boardNewest = [];                        // the most recent move(s) as [square, player] pairs -- all drawn
+                                          // bold. A collection so simultaneously-drawn marks (a chord) stay
+                                          // bold together until the NEXT (non-simultaneous) move replaces
+                                          // them. Per (square, player) so an X and O sharing a cell are
+                                          // tracked separately.
 ~boardNewestTime = -inf;                  // elapsedTime of the current bold batch (for the chord window)
 ~boardNewestWindow = 0.04;                // s: draws within this of the batch join it (else start a new one)
 ~boardWin    = nil;                        // the Window, or nil if never opened
@@ -68,7 +72,7 @@
 );
 
 ~boardClear = {
-	~boardState  = Array.fill(9, { (player: 0, win: false) });
+	~boardState  = Array.fill(9, { (p1: false, p1win: false, p2: false, p2win: false) });
 	~boardNewest = [];
 	~boardNewestTime = -inf;
 };
@@ -89,11 +93,13 @@
 		player.notNil.if {
 			// Start a fresh bold batch unless this draw is (near-)simultaneous with the
 			// current one -- then it JOINS the batch, so chorded marks all stay bold.
-			var nowT = Main.elapsedTime;
+			var nowT = Main.elapsedTime, cell = ~boardState[sq], win = (vel >= 127);
 			if((nowT - ~boardNewestTime) > ~boardNewestWindow) { ~boardNewest = [] };
 			~boardNewestTime = nowT;
-			~boardState[sq] = (player: player, win: (vel >= 127));
-			~boardNewest = ~boardNewest.add(sq);
+			// set THIS player's slot without disturbing the other, so an X and an O
+			// can share the cell (both drawn) rather than overwriting each other.
+			if(player == 1) { cell[\p1] = true; cell[\p1win] = win } { cell[\p2] = true; cell[\p2win] = win };
+			~boardNewest = ~boardNewest.add([sq, player]);
 			if(~boardDebug == true) {
 				"  [debug] board: pitch % -> P% square % %".format(
 					pitch, player, sq, if(vel >= 127) { "(WIN)" } { "" }).postln;
@@ -136,26 +142,29 @@
 		Pen.stroke;
 	};
 
-	// X / O marks (full colour; only the clear fade affects them)
+	// X / O marks (full colour; only the clear fade affects them). Each cell can hold
+	// BOTH an X and an O (they share the same inset rect, so the diagonals and the circle
+	// overlap and both read clearly), so we draw each present player independently.
 	~boardState.do({ |cell, i|
-		var player = cell[\player];
-		if(player > 0) {
-			var row  = i div: 3, col = i mod: 3;
-			var ins  = cw.min(ch) * 0.24;
-			var r    = Rect(x0 + (col * cw), y0 + (row * ch), cw, ch).insetBy(ins, ins);
-			var base = switch(player,
-				1, { if(cell[\win]) { ~boardColors[\p1win] } { ~boardColors[\mark] } },
-				2, { if(cell[\win]) { ~boardColors[\p2win] } { ~boardColors[\mark] } });
+		var row  = i div: 3, col = i mod: 3;
+		var ins  = cw.min(ch) * 0.24;
+		var r    = Rect(x0 + (col * cw), y0 + (row * ch), cw, ch).insetBy(ins, ins);
+		// X (player 1): two diagonals
+		if(cell[\p1]) {
+			var base = if(cell[\p1win]) { ~boardColors[\p1win] } { ~boardColors[\mark] };
 			Pen.strokeColor = Color(base.red, base.green, base.blue, base.alpha * fade);
 			// thick when it's one of the newest move(s) OR a winning (vel >= 127) cell
-			Pen.width = if(~boardNewest.includes(i) or: { cell[\win] }) { lineW * 2 } { lineW * 1.2 };
-			if(player == 1) {                       // X: two diagonals
-				Pen.moveTo(r.left @ r.top);    Pen.lineTo(r.right @ r.bottom);
-				Pen.moveTo(r.left @ r.bottom); Pen.lineTo(r.right @ r.top);
-				Pen.stroke;
-			} {                                     // O: a circle
-				Pen.strokeOval(r);
-			};
+			Pen.width = if(~boardNewest.includes([i, 1]) or: { cell[\p1win] }) { lineW * 2 } { lineW * 1.2 };
+			Pen.moveTo(r.left @ r.top);    Pen.lineTo(r.right @ r.bottom);
+			Pen.moveTo(r.left @ r.bottom); Pen.lineTo(r.right @ r.top);
+			Pen.stroke;
+		};
+		// O (player 2): a circle
+		if(cell[\p2]) {
+			var base = if(cell[\p2win]) { ~boardColors[\p2win] } { ~boardColors[\mark] };
+			Pen.strokeColor = Color(base.red, base.green, base.blue, base.alpha * fade);
+			Pen.width = if(~boardNewest.includes([i, 2]) or: { cell[\p2win] }) { lineW * 2 } { lineW * 1.2 };
+			Pen.strokeOval(r);
 		};
 	});
 
